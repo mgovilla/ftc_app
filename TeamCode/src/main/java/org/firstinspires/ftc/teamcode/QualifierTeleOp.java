@@ -55,7 +55,7 @@ import com.qualcomm.robotcore.util.Range;
 
 public class QualifierTeleOp extends OpMode {
     // Declare OpMode members.
-    private HardwareQualifierBot robot = new HardwareQualifierBot();
+    private HardwareQualifierBot robot = new HardwareQualifierBot(hardwareMap, telemetry);
 
     private boolean isPressed = false,
                     isPressed2 = false,
@@ -76,7 +76,7 @@ public class QualifierTeleOp extends OpMode {
     @Override
     public void init() {
         telemetry.addData("Status", "Initialized");
-        robot.init(hardwareMap);
+        robot.init();
         // Tell the driver that initialization is complete.
     }
 

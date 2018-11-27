@@ -55,18 +55,16 @@ import com.qualcomm.robotcore.util.Range;
 
 public class QualifierTeleOp extends OpMode {
     // Declare OpMode members.
-    private HardwareQualifierBot robot = new HardwareQualifierBot(hardwareMap, telemetry);
+    private HardwareQualifierBot robot;
 
     private boolean isPressed = false,
                     isPressed2 = false,
-                    CMode = false,
                     delivering = false; //false = delivery, true = collection
 
     private int trigger = 1,
                 trigger2 = 0;
 
-    private double armAngle = 0,
-                   normalized = 0;
+    private double armAngle = 0;
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -75,8 +73,10 @@ public class QualifierTeleOp extends OpMode {
      */
     @Override
     public void init() {
-        telemetry.addData("Status", "Initialized");
+        robot = new HardwareQualifierBot(hardwareMap, telemetry);
+
         robot.init();
+        telemetry.addData("Status", "Initialized");
         // Tell the driver that initialization is complete.
     }
 
@@ -181,7 +181,7 @@ public class QualifierTeleOp extends OpMode {
          */
 
         //collection mode is even (%2 == 0)
-        CMode = (trigger2 % 2 == 0);
+        boolean CMode = (trigger2 % 2 == 0);
 
 
         if(isPressed2 && !gamepad1.x) {
@@ -201,7 +201,7 @@ public class QualifierTeleOp extends OpMode {
 
             if(gamepad1.dpad_down && armAngle > 150) {
                 delivering = true;
-                robot.pivot.setPosition(.2);
+                robot.pivot.setPosition(.65);
             } else {
                 delivering = false;
             }

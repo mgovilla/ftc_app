@@ -6,9 +6,11 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
  * Autonomous for the Blue Side starting in front of the Crater, parking in the near crater
  */
 public class AutonBlueCrater extends LinearOpMode {
-    HardwareQualifierBot robot = new HardwareQualifierBot(hardwareMap, telemetry);
+
 
     public void runOpMode() {
+        HardwareQualifierBot robot = new HardwareQualifierBot(hardwareMap, telemetry);
+
          robot.init();
 
          waitForStart();

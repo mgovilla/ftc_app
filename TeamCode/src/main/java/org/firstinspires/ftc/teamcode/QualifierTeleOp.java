@@ -38,17 +38,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 /**
- * This file contains an example of an iterative (Non-Linear) "OpMode".
- * An OpMode is a 'program' that runs in either the autonomous or the teleop period of an FTC match.
- * The names of OpModes appear on the menu of the FTC Driver Station.
- * When an selection is made from the menu, the corresponding OpMode
- * class is instantiated on the Robot Controller and executed.
- *
- * This particular OpMode just executes a basic Tank Drive Teleop for a two wheeled robot
- * It includes all the skeletal structure that all iterative OpModes contain.
- *
- * Use Android Studios to Copy this Class, and Paste it into your team's code folder with a new name.
- * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
+ * Main TeleOp for 12/3 Qualifier
+ * Tank Drive
+ * Encoder Arm Angle Tracking
  */
 
 @TeleOp(name="TeleOp", group="Iterative Opmode")
@@ -94,24 +86,36 @@ public class QualifierTeleOp extends OpMode {
     @Override
     public void loop() {
         // Setup a variable for each drive wheel to save power level for telemetry
-        double leftPower;
-        double rightPower;
+        double leftPower = -gamepad1.left_stick_y + -gamepad2.left_stick_y;
+        double rightPower = -gamepad1.right_stick_y + -gamepad2.right_stick_y;
+
         double hangPower = gamepad2.right_trigger;
         double armPower = gamepad1.right_trigger;
         double extendPower = gamepad1.left_trigger;
 
-        double drive = -gamepad1.left_stick_y;
+        /*double drive = -gamepad1.left_stick_y;
         double turn  =  gamepad1.right_stick_x;
 
         leftPower    = Range.clip(drive + turn, -1.0, 1.0) ;
         rightPower   = Range.clip(drive - turn, -1.0, 1.0) ;
+        */
 
         // Send calculated power to wheels
+        if(Math.abs(leftPower) > 0.2) {
+            robot.leftDrive1.setPower(leftPower);
+            robot.leftDrive2.setPower(leftPower);
+        } else {
+            robot.leftDrive1.setPower(0.0);
+            robot.leftDrive2.setPower(0.0);
+        }
 
-        robot.leftDrive1.setPower(leftPower);
-        robot.leftDrive2.setPower(leftPower);
-        robot.rightDrive1.setPower(rightPower);
-        robot.rightDrive2.setPower(rightPower);
+        if(Math.abs(rightPower) > 0.2) {
+            robot.rightDrive1.setPower(rightPower);
+            robot.rightDrive2.setPower(rightPower);
+        } else {
+            robot.rightDrive1.setPower(0.0);
+            robot.rightDrive2.setPower(0.0);
+        }
 
         /*
          *
@@ -201,7 +205,7 @@ public class QualifierTeleOp extends OpMode {
 
             if(gamepad1.dpad_down && armAngle > 150) {
                 delivering = true;
-                robot.pivot.setPosition(.65);
+                robot.pivot.setPosition(.7);
             } else {
                 delivering = false;
             }

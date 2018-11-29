@@ -54,7 +54,7 @@ abstract public class Autonomous extends LinearOpMode {
 
 
     void unlatch() {
-
+        
     }
 
     int getGoldPosition() {

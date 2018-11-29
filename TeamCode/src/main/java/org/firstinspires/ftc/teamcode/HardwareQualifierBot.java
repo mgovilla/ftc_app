@@ -75,7 +75,7 @@ public class HardwareQualifierBot {
         pivot = hardwareMap.get(Servo.class, "pvt");
 
         collection.setPower(-0.05);
-        pivot.setPosition(0.15);
+        pivot.setPosition(0.2);
 
         //********IMU********\\
 

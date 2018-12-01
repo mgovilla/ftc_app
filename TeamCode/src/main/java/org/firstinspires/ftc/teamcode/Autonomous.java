@@ -1,13 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
@@ -20,7 +18,11 @@ import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABE
 import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.TFOD_MODEL_ASSET;
 
 abstract public class Autonomous extends LinearOpMode {
-    private HardwareQualifierBot robot = new HardwareQualifierBot(hardwareMap, telemetry);
+    HardwareQualifierBot robot;
+
+    private static double GEAR_RATIO = 1.5;
+    private static double CIRCUMFERENCE = 4.0 * Math.PI;
+    private static double TICKS_PER_REV = 1120;
 
     private int goldMineralPosition = 3; //default to the right
 
@@ -38,23 +40,106 @@ abstract public class Autonomous extends LinearOpMode {
      */
     private TFObjectDetector tfod;
 
-    public void setPower(double power) {
+    void setPower(double power) {
         robot.rightDrive1.setPower(power);
         robot.rightDrive2.setPower(power);
         robot.leftDrive1.setPower(power);
         robot.leftDrive2.setPower(power);
     }
 
-    public void setPower(double right, double left) {
+    void setPower(double right, double left) {
         robot.rightDrive1.setPower(right);
         robot.rightDrive2.setPower(right);
         robot.leftDrive1.setPower(left);
         robot.leftDrive2.setPower(left);
     }
 
+    void encoderReset() {
+        robot.rightDrive1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.leftDrive1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        sleep(10);
+    }
+
+    void runWithoutEncoders() {
+        robot.rightDrive1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        robot.rightDrive2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        robot.leftDrive1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        robot.leftDrive2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        sleep(10);
+    }
+
+    /**
+     *
+     * @param distance
+     */
+    void driveInches(double distance) {
+
+        double power;
+
+        double counts = ((distance / (GEAR_RATIO * CIRCUMFERENCE))) * TICKS_PER_REV;
+        double target = robot.rightDrive1.getCurrentPosition() + counts;
+
+        while (Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 45 && !isStopRequested()) {
+            telemetry.addData("Motor Right 1", robot.rightDrive1.getCurrentPosition());
+            telemetry.addData("Target", target);
+            telemetry.update();
+            power = Range.clip(target - robot.rightDrive1.getCurrentPosition() / 350, .15, .8);
+            setPower(power);
+        }
+
+        setPower(0.0);
+
+    }
+
+    void armToPos(DcMotor motor, double angle) {
+
+        double power;
+        angle = angle/360.0;
+        double counts = ((angle) * (-5040.0));
+        double target = motor.getCurrentPosition() + counts;
+
+        while (Math.abs(motor.getCurrentPosition() - target) > 45 && !isStopRequested()) {
+            telemetry.addData("Motor Pos", motor.getCurrentPosition());
+            telemetry.addData("Target", target);
+            telemetry.update();
+            power = Range.clip(target - motor.getCurrentPosition() / 350, .5, .8);
+            setPower(power);
+        }
+
+        motor.setPower(0.0);
+    }
+
+    void hangToPos(DcMotor motor, double counts) {
+
+        double power;
+        double target = motor.getCurrentPosition() + counts;
+
+        while (Math.abs(motor.getCurrentPosition() - target) > 45 && !isStopRequested()) {
+            telemetry.addData("Motor Pos", motor.getCurrentPosition());
+            telemetry.addData("Target", target);
+            telemetry.update();
+            power = Range.clip(target - motor.getCurrentPosition() / 100 , .7, 1.0);
+            setPower(power);
+        }
+
+        motor.setPower(0.0);
+
+    }
+
 
     void unlatch() {
-        
+        armToPos(robot.arm, 20);
+
+        hangToPos(robot.hang, -18000);
+
+        turnIMU(35);
+        sleep(200);
+
+        driveInches(3);
+        sleep(200);
+
+        turnIMU(-robot.pos.firstAngle);
+
     }
 
     int getGoldPosition() {
@@ -64,7 +149,7 @@ abstract public class Autonomous extends LinearOpMode {
             tfod.activate();
         }
 
-        while(goldMineralPosition == 3 && getRuntime() - startTime < 5 && opModeIsActive()) {
+        while (goldMineralPosition == 3 && getRuntime() - startTime < 5 && opModeIsActive()) {
             if (tfod != null) {
                 // getUpdatedRecognitions() will return null if no new information is available since
                 // the last time that call was made.
@@ -149,11 +234,11 @@ abstract public class Autonomous extends LinearOpMode {
         tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_GOLD_MINERAL, LABEL_SILVER_MINERAL);
     }
 
-    public void turnIMU(float target) {
+    void turnIMU(float target) {
+        robot.updatePosition();
 
         double startTime = getRuntime();
-        Orientation Pos = robot.imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-        float initial = Pos.firstAngle;
+        float initial = robot.pos.firstAngle;
         float current = initial;
         target = target + initial;
 
@@ -162,45 +247,45 @@ abstract public class Autonomous extends LinearOpMode {
         double deltaAngle = 0, initTime, deltaTime;
         double i = 0;
 
-        while(Math.abs((current) - (target)) > .75 && getRuntime() - startTime < 4) {
+        while (Math.abs((current) - (target)) > .75 && getRuntime() - startTime < 4 && opModeIsActive()) {
             initTime = getRuntime();
 
-            Pos = robot.imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-            current = Pos.firstAngle; //getHeading
+            robot.updatePosition();
+            current = robot.pos.firstAngle; //getHeading
             telemetry.addData("toGo", current - target);
             telemetry.update();
 
-            double power = Range.clip((Math.abs((current - target) / (target*1.1))+i), .35, .5);
+            double power = Range.clip((Math.abs((current - target) / (target * 1.1)) + i), .25, .5);
 
 
-            if(current < target) { //Must turn left
-                setPower(power + ((deltaLeft-deltaRight)), -power);
-            } else if(current > target) { //Must turn right
-                setPower(-power, power + (deltaRight-deltaLeft));
+            if (current < target) { //Must turn left
+                setPower(power + ((deltaLeft - deltaRight)), -power);
+            } else if (current > target) { //Must turn right
+                setPower(-power, power + (deltaRight - deltaLeft));
             }
 
-            deltaLeft = Math.abs(robot.leftDrive1.getCurrentPosition() - lastLeftPos)/1000;
-            deltaRight = Math.abs(robot.rightDrive1.getCurrentPosition() - lastRightPos)/1000;
-            deltaTime =  - initTime;
+            deltaLeft = Math.abs(robot.leftDrive1.getCurrentPosition() - lastLeftPos) / 1000;
+            deltaRight = Math.abs(robot.rightDrive1.getCurrentPosition() - lastRightPos) / 1000;
+            deltaTime = -initTime;
 
             lastLeftPos = robot.leftDrive1.getCurrentPosition();
             lastRightPos = robot.rightDrive1.getCurrentPosition();
 
-            if(Math.abs(current - target) < 30)
-                i += .005*(current - target)*deltaTime;
+            if (Math.abs(current - target) < 30)
+                i += .005 * (current - target) * deltaTime;
 
-            if(i>.3) {
-                i=.3;
+            if (i > .3) {
+                i = .3;
             }
         }
-
+        setPower(0.0);
     }
 
     String formatAngle(AngleUnit angleUnit, double angle) {
         return formatDegrees(AngleUnit.DEGREES.fromUnit(angleUnit, angle));
     }
 
-    String formatDegrees(double degrees){
+    String formatDegrees(double degrees) {
         return String.format(Locale.getDefault(), "%.1f", AngleUnit.DEGREES.normalize(degrees));
     }
 }

@@ -86,19 +86,19 @@ public class QualifierTeleOp extends OpMode {
     @Override
     public void loop() {
         // Setup a variable for each drive wheel to save power level for telemetry
-        double leftPower = -gamepad1.left_stick_y + -gamepad2.left_stick_y;
-        double rightPower = -gamepad1.right_stick_y + -gamepad2.right_stick_y;
+        double leftPower;
+        double rightPower;
 
         double hangPower = gamepad2.right_trigger;
         double armPower = gamepad1.right_trigger;
         double extendPower = gamepad1.left_trigger;
 
-        /*double drive = -gamepad1.left_stick_y;
-        double turn  =  gamepad1.right_stick_x;
+        double drive = -gamepad2.left_stick_y;
+        double turn  =  gamepad2.right_stick_x;
 
-        leftPower    = Range.clip(drive + turn, -1.0, 1.0) ;
-        rightPower   = Range.clip(drive - turn, -1.0, 1.0) ;
-        */
+        leftPower    = Range.clip(drive + turn, -1.0, 1.0) + -gamepad1.left_stick_y;
+        rightPower   = Range.clip(drive - turn, -1.0, 1.0) + -gamepad1.right_stick_y;
+
 
         // Send calculated power to wheels
         if(Math.abs(leftPower) > 0.2) {
@@ -223,6 +223,10 @@ public class QualifierTeleOp extends OpMode {
         telemetry.addData("Arm Angle", armAngle);
         telemetry.addData("Servo Position", Range.clip(armAngle / 180, .15, .875));
         telemetry.addData("Arm Position", robot.arm.getCurrentPosition());
+        telemetry.addData("Hang Position", robot.hang.getCurrentPosition());
+        telemetry.addData("Rd1 Position", robot.rightDrive1.getCurrentPosition());
+        telemetry.addData("Ld1 Position", robot.leftDrive1.getCurrentPosition());
+
         telemetry.addData("Trigger", trigger2);
 
 

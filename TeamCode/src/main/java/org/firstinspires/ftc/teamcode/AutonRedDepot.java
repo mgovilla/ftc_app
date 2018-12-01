@@ -1,15 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 
 /**
  * Autonomous for the Blue Side starting in front of the Depot, parking in the far crater
  */
-@Autonomous(name="BlueDepot")
-public class AutonBlueDepot extends org.firstinspires.ftc.teamcode.Autonomous {
+@Autonomous(name="RedDepot")
+public class AutonRedDepot extends org.firstinspires.ftc.teamcode.Autonomous {
 
     public void runOpMode() {
         robot = new HardwareQualifierBot(hardwareMap, telemetry);
@@ -21,15 +20,12 @@ public class AutonBlueDepot extends org.firstinspires.ftc.teamcode.Autonomous {
             initTfod();
         }
 
-        encoderReset();
-        runWithoutEncoders();
 
         waitForStart();
 
         int goldPos = getGoldPosition();
         // Lower down onto the field
-        // robot.unlatch();
-        // Turn to unlatch
+        unlatch();
 
         // Choose Path
         // case: 0 Knock down Left Mineral
@@ -39,16 +35,30 @@ public class AutonBlueDepot extends org.firstinspires.ftc.teamcode.Autonomous {
         switch (goldPos) {
             case 0:
                 //Turn to the left
+                turnIMU(35);
+                driveInches(10);
+                turnIMU(-robot.pos.firstAngle);
+
+                driveInches(10);
+
+
                 telemetry.addData("GO LEFT", goldPos);
                 telemetry.update();
                 break;
             case 1:
                 //Go straight
+                driveInches(17);
                 telemetry.addData("GO CENTER", goldPos);
                 telemetry.update();
                 break;
             default:
                 //Turn to the Right
+
+                turnIMU(-35);
+                driveInches(10);
+                turnIMU(robot.pos.firstAngle);
+
+                driveInches(10);
                 telemetry.addData("GO RIGHT", goldPos);
                 telemetry.update();
                 break;

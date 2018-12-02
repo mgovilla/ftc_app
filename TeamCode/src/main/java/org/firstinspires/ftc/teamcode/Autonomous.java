@@ -73,17 +73,39 @@ abstract public class Autonomous extends LinearOpMode {
      * @param distance
      */
     void driveInches(double distance) {
-
         double power;
 
-        double counts = ((distance / (GEAR_RATIO * CIRCUMFERENCE))) * TICKS_PER_REV;
+        double counts = ((-distance / (GEAR_RATIO * CIRCUMFERENCE))) * TICKS_PER_REV;
         double target = robot.rightDrive1.getCurrentPosition() + counts;
+
+        if(robot.rightDrive1.getCurrentPosition() > target) { //go forward
+            while (Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 45 && !isStopRequested()) {
+                telemetry.addData("Motor Right 1", robot.rightDrive1.getCurrentPosition());
+                telemetry.addData("Target", target);
+                telemetry.update();
+
+                power = Range.clip((robot.rightDrive1.getCurrentPosition() - target) / 350.0, 0.15, 0.6);
+                setPower(power);
+            }
+        } else {
+            while (Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 45 && !isStopRequested()) {
+                telemetry.addData("Motor Right 1", robot.rightDrive1.getCurrentPosition());
+                telemetry.addData("Target", target);
+                telemetry.update();
+
+                power = Range.clip((target - robot.rightDrive1.getCurrentPosition()) / 350.0, -0.6, -0.15);
+                setPower(power);
+            }
+        }
+
 
         while (Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 45 && !isStopRequested()) {
             telemetry.addData("Motor Right 1", robot.rightDrive1.getCurrentPosition());
             telemetry.addData("Target", target);
             telemetry.update();
-            power = Range.clip(target - robot.rightDrive1.getCurrentPosition() / 350, .15, .8);
+
+            power = Range.clip(robot.rightDrive1.getCurrentPosition() - target / 350, -0.6, 0.6);
+
             setPower(power);
         }
 
@@ -103,7 +125,7 @@ abstract public class Autonomous extends LinearOpMode {
             telemetry.addData("Target", target);
             telemetry.update();
             power = Range.clip(target - motor.getCurrentPosition() / 350, .5, .8);
-            setPower(power);
+            motor.setPower(power);
         }
 
         motor.setPower(0.0);
@@ -118,8 +140,8 @@ abstract public class Autonomous extends LinearOpMode {
             telemetry.addData("Motor Pos", motor.getCurrentPosition());
             telemetry.addData("Target", target);
             telemetry.update();
-            power = Range.clip(target - motor.getCurrentPosition() / 100 , .7, 1.0);
-            setPower(power);
+            power = Range.clip(target - motor.getCurrentPosition() / 100 , -1.0, -0.7);
+            motor.setPower(power);
         }
 
         motor.setPower(0.0);
@@ -130,15 +152,21 @@ abstract public class Autonomous extends LinearOpMode {
     void unlatch() {
         armToPos(robot.arm, 20);
 
-        hangToPos(robot.hang, -18000);
+        hangToPos(robot.hang, -16900);
+
+        setPower(.25);
+        sleep(100);
+        setPower(0.0);
 
         turnIMU(35);
         sleep(200);
 
-        driveInches(3);
+        driveInches(4);
         sleep(200);
 
         turnIMU(-robot.pos.firstAngle);
+
+        sleep(2500);
 
     }
 

@@ -12,16 +12,20 @@ public class AutonRedDepot extends org.firstinspires.ftc.teamcode.Autonomous {
 
     public void runOpMode() {
         robot = new HardwareQualifierBot(hardwareMap, telemetry);
-
         robot.init();
+        robot.imu.initialize(robot.parameters);
+
         initVuforia();
 
         if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
             initTfod();
         }
 
+        encoderReset();
+        runWithoutEncoders();
 
         waitForStart();
+
 
         int goldPos = getGoldPosition();
         // Lower down onto the field
@@ -33,40 +37,72 @@ public class AutonRedDepot extends org.firstinspires.ftc.teamcode.Autonomous {
         // case: 2 Knock down Right mineral
 
         switch (goldPos) {
-            case 0:
+            default:
                 //Turn to the left
-                turnIMU(35);
-                driveInches(10);
-                turnIMU(-robot.pos.firstAngle);
-
-                driveInches(10);
-
-
                 telemetry.addData("GO LEFT", goldPos);
                 telemetry.update();
+                turnIMU(15);
+                driveInches(35);
+                sleep(100);
+                driveInches(-5);
+                turnIMU(-40);
+
+                driveInches(20);
+
+                robot.marker.setPosition(1.0);
+                driveInches(-5);
+
+                turnIMU((-robot.pos.firstAngle-45));
                 break;
+
             case 1:
                 //Go straight
-                driveInches(17);
+
                 telemetry.addData("GO CENTER", goldPos);
                 telemetry.update();
+                turnIMU(-5);
+                driveInches(50);
+
+                robot.marker.setPosition(1.0);
+                driveInches(-10);
+
+                turnIMU((-robot.pos.firstAngle-45));
                 break;
-            default:
+
+            case 2:
                 //Turn to the Right
-
-                turnIMU(-35);
-                driveInches(10);
-                turnIMU(robot.pos.firstAngle);
-
-                driveInches(10);
                 telemetry.addData("GO RIGHT", goldPos);
                 telemetry.update();
+                turnIMU(-30);
+                sleep(100);
+
+                driveInches(40);
+                sleep(100);
+                driveInches(-10);
+                turnIMU(40);
+
+                driveInches(30);
+
+                robot.marker.setPosition(1.0);
+                driveInches(-5);
+
+                turnIMU((-robot.pos.firstAngle-45));
                 break;
         }
+        sleep(2500);
 
-        //Deposit Marker
+        // Lower down onto the field
+        // Turn to unlatch
+        // Picture of minerals
+        // Choose Path
+        // case: 0 Knock down First Mineral
+        // case: 1 Knock down Second Mineral
+        // case: 2 Knock down third mineral
 
-        //Park in RED crater
+        // Maneuver around other minerals
+        // Drive to Depot
+        // Deposit Marker
+        // Drive back to Crater and Park
 
     }
 }

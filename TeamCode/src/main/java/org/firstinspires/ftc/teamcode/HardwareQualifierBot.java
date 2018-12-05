@@ -5,6 +5,7 @@ import android.graphics.Path;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -44,11 +45,13 @@ public class HardwareQualifierBot {
             arm, hang, extend;
 
     CRServo collection;
-    Servo pivot;
+    Servo pivot, marker;
 
     BNO055IMU imu;
-
+    BNO055IMU.Parameters parameters;
     Orientation pos;
+
+    AnalogInput potentiometer;
 
     HardwareQualifierBot(HardwareMap hM, Telemetry tM) {
         hardwareMap = hM;
@@ -75,13 +78,15 @@ public class HardwareQualifierBot {
 
         collection = hardwareMap.get(CRServo.class, "clt");
         pivot = hardwareMap.get(Servo.class, "pvt");
+        marker = hardwareMap.get(Servo.class, "mrk");
 
         collection.setPower(-0.05);
         pivot.setPosition(0.2);
+        marker.setPosition(0.4);
 
         //********IMU********\\
 
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters                     = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
@@ -93,7 +98,8 @@ public class HardwareQualifierBot {
         // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
         // and named "imu".
         imu = hardwareMap.get(BNO055IMU.class, "imu");
-        imu.initialize(parameters);
+        potentiometer = hardwareMap.get(AnalogInput.class, "pot");
+
         //updatePosition();
     }
 

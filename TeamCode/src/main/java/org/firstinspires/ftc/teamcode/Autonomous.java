@@ -84,7 +84,7 @@ abstract public class Autonomous extends LinearOpMode {
                 telemetry.addData("Target", target);
                 telemetry.update();
 
-                power = Range.clip((robot.rightDrive1.getCurrentPosition() - target) / 350.0, 0.15, 0.6);
+                power = Range.clip((robot.rightDrive1.getCurrentPosition() - target) / 350.0, 0.25, 0.6);
                 setPower(power);
             }
         } else {
@@ -93,21 +93,11 @@ abstract public class Autonomous extends LinearOpMode {
                 telemetry.addData("Target", target);
                 telemetry.update();
 
-                power = Range.clip((target - robot.rightDrive1.getCurrentPosition()) / 350.0, -0.6, -0.15);
+                power = Range.clip((target - robot.rightDrive1.getCurrentPosition()) / 350.0, -0.6, -0.25);
                 setPower(power);
             }
         }
 
-
-        while (Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 45 && !isStopRequested()) {
-            telemetry.addData("Motor Right 1", robot.rightDrive1.getCurrentPosition());
-            telemetry.addData("Target", target);
-            telemetry.update();
-
-            power = Range.clip(robot.rightDrive1.getCurrentPosition() - target / 350, -0.6, 0.6);
-
-            setPower(power);
-        }
 
         setPower(0.0);
 
@@ -140,7 +130,7 @@ abstract public class Autonomous extends LinearOpMode {
             telemetry.addData("Motor Pos", motor.getCurrentPosition());
             telemetry.addData("Target", target);
             telemetry.update();
-            power = Range.clip(target - motor.getCurrentPosition() / 100 , -1.0, -0.7);
+            power = Range.clip(target - motor.getCurrentPosition() / 100 , 0.7, 1.0);
             motor.setPower(power);
         }
 
@@ -152,13 +142,15 @@ abstract public class Autonomous extends LinearOpMode {
     void unlatch() {
         armToPos(robot.arm, 20);
 
-        hangToPos(robot.hang, -16900);
+        hangToPos(robot.hang, 34000);
 
         setPower(.25);
         sleep(100);
         setPower(0.0);
 
-        turnIMU(35);
+        sleep(250);
+
+        turnIMU(20);
         sleep(200);
 
         driveInches(4);
@@ -166,7 +158,7 @@ abstract public class Autonomous extends LinearOpMode {
 
         turnIMU(-robot.pos.firstAngle);
 
-        sleep(2500);
+        sleep(200);
 
     }
 
@@ -283,7 +275,7 @@ abstract public class Autonomous extends LinearOpMode {
             telemetry.addData("toGo", current - target);
             telemetry.update();
 
-            double power = Range.clip((Math.abs((current - target) / (target * 1.1)) + i), .25, .5);
+            double power = Range.clip((Math.abs((current - target) / (target * 1.1)) + i), .35, .5);
 
 
             if (current < target) { //Must turn left

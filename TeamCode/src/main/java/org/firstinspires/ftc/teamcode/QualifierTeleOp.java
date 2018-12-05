@@ -41,6 +41,9 @@ import com.qualcomm.robotcore.util.Range;
  * Main TeleOp for 12/3 Qualifier
  * Tank Drive
  * Encoder Arm Angle Tracking
+ * Potentiometer: 1.65 v at 0deg and 0 v at 185deg
+ * linear: 115 degrees per volt
+ *
  */
 
 @TeleOp(name="TeleOp", group="Iterative Opmode")
@@ -123,9 +126,9 @@ public class QualifierTeleOp extends OpMode {
          *
          */
         if(hangPower > 0.2) {
-            robot.hang.setPower(hangPower);
+            robot.hang.setPower(-hangPower);
         } else if(gamepad2.right_bumper) {
-            robot.hang.setPower(-1.0);
+            robot.hang.setPower(1.0);
         } else {
             robot.hang.setPower(0.0);
         }
@@ -196,6 +199,7 @@ public class QualifierTeleOp extends OpMode {
         //60 motor: 1680 counts per revolution
 
         armAngle = (robot.arm.getCurrentPosition()/(-5040.0)) * 360.0;
+        //armAngle = (-115 * robot.potentiometer.getVoltage()) + 202;
 
         if(CMode) { // Collection Mode
             if (armAngle > 30 && armAngle < 80) {
@@ -226,6 +230,8 @@ public class QualifierTeleOp extends OpMode {
         telemetry.addData("Hang Position", robot.hang.getCurrentPosition());
         telemetry.addData("Rd1 Position", robot.rightDrive1.getCurrentPosition());
         telemetry.addData("Ld1 Position", robot.leftDrive1.getCurrentPosition());
+
+        telemetry.addData("Potentiometer Input", robot.potentiometer.getVoltage());
 
         telemetry.addData("Trigger", trigger2);
 

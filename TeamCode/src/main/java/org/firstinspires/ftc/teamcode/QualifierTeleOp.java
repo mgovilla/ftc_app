@@ -38,7 +38,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 /**
- * Main TeleOp for 12/3 Qualifier
+ * Main TeleOp for 12/8 Qualifier
  * Tank Drive
  * Encoder Arm Angle Tracking
  * Potentiometer: 1.65 v at 0deg and 0 v at 185deg
@@ -54,7 +54,9 @@ public class QualifierTeleOp extends OpMode {
 
     private boolean isPressed = false,
                     isPressed2 = false,
-                    delivering = false; //false = delivery, true = collection
+                    storing = false,
+                    collecting = false,
+                    lifting; //false = delivery, true = collection
 
     private int trigger = 1,
                 trigger2 = 0;
@@ -138,12 +140,24 @@ public class QualifierTeleOp extends OpMode {
          *  Rotating the Arm
          *
          */
-        if(armPower > 0.2) {
-            robot.arm.setPower(armPower);
-        } else if(gamepad1.right_bumper) {
-            robot.arm.setPower(-0.3);
+        if (gamepad1.right_trigger > .1) {                      // When the button is pressed, start lifting
+            lifting = true;
+        }
+
+        if(lifting && armAngle < 140) {                         // Only lift while angle is below a certain value
+            if(gamepad1.right_bumper) {
+                lifting = false;                                // To cancel lifting if necessary
+            }
+            robot.arm.setPower(.75);                            // Setting power for lifting
         } else {
-            robot.arm.setPower(0.0);
+            lifting = false;                                    // Stop lifting
+            if(gamepad1.right_trigger > .1) {                   // To finish lifting for the scoring
+                robot.arm.setPower(gamepad1.right_trigger);
+            } else if(gamepad1.right_bumper) {                  // Put the arm back down
+                robot.arm.setPower(-.4);
+            } else {
+                robot.arm.setPower(0);
+            }
         }
 
         /*
@@ -164,14 +178,17 @@ public class QualifierTeleOp extends OpMode {
          *  Toggling the Collection Itself
          *
          */
-        if(trigger % 2 == 0) {
-            robot.collection.setPower(1.0); //Collection is ON
-        } else if (gamepad1.y) {
-            robot.collection.setPower(-1.0);
+        if(trigger % 2 == 0) {                                  // Check if the collection was triggered
+            if (gamepad1.y) {
+                robot.collection.setPower(-1.0);
+            } else {
+                robot.collection.setPower(1.0);                 // Only turn collection on if the y button is not pressed
+            }
         } else {
-            robot.collection.setPower(-0.05);
+            robot.collection.setPower(-0.05);                   // Stop collection
         }
 
+        // Code to prevent adding to trigger multiple times while holding the button
         if(isPressed && !gamepad1.a) {
             trigger++;
         }
@@ -190,7 +207,7 @@ public class QualifierTeleOp extends OpMode {
         //collection mode is even (%2 == 0)
         boolean CMode = (trigger2 % 2 == 0);
 
-
+        // Code to prevent adding to trigger multiple times while holding the button
         if(isPressed2 && !gamepad1.x) {
             trigger2++;
         }
@@ -201,23 +218,30 @@ public class QualifierTeleOp extends OpMode {
         armAngle = (robot.arm.getCurrentPosition()/(-5040.0)) * 360.0;
         //armAngle = (-115 * robot.potentiometer.getVoltage()) + 202;
 
-        if(CMode) { // Collection Mode
-            if (armAngle > 30 && armAngle < 80) {
-                robot.pivot.setPosition(Range.clip((3.0*armAngle / 800.0) + 0.35, .15, .65));
+        // Main if statement for determining Pivot Position
+        if(CMode) {                                             // Collection Mode
+            if(gamepad1.b) {                                    // To push the other minerals away
+                robot.pivot.setPosition(.5);
+                collecting = false;                             // Prevent multiple instances of setPosition
+            } else {
+                collecting = true;                              // After the button is released, resume collection mode
             }
-        } else {    // Storage Mode
 
-            if(gamepad1.dpad_down && armAngle > 150) {
-                delivering = true;
+            if(armAngle > 30 && armAngle < 80 && collecting) {  // Between the collecting arm range
+                robot.pivot.setPosition
+                        (Range.clip((3.0*armAngle / 800.0) + 0.35, .15, .65)); //Scale Servo value based on angle
+            }
+        } else {                                                // Storage Mode
+            if(gamepad1.dpad_down && armAngle > 150) {          // To score the minerals after the arm achieves a certain angle
+                storing = false;
                 robot.pivot.setPosition(.7);
             } else {
-                delivering = false;
+                storing = true;
             }
 
-            if(armAngle > 20 && !delivering) {
+            if(armAngle > 20 && storing) {                      // To bring the pivot up
                 robot.pivot.setPosition(Range.clip(armAngle / 180, .15, .875));
             }
-
         }
 
 

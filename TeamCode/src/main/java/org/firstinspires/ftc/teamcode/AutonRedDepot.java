@@ -7,7 +7,7 @@ import org.firstinspires.ftc.robotcore.external.ClassFactory;
 /**
  * Autonomous for the Blue Side starting in front of the Depot, parking in the far crater
  */
-@Autonomous(name="RedDepot")
+@Autonomous(name="Depot")
 public class AutonRedDepot extends org.firstinspires.ftc.teamcode.Autonomous {
 
     public void runOpMode() {
@@ -41,18 +41,28 @@ public class AutonRedDepot extends org.firstinspires.ftc.teamcode.Autonomous {
                 //Turn to the left
                 telemetry.addData("GO LEFT", goldPos);
                 telemetry.update();
-                turnIMU(15);
-                driveInches(35);
+                driveInches(9);
+                turnIMU(13);
+                driveInches(40);
                 sleep(100);
                 driveInches(-5);
-                turnIMU(-40);
+                turnIMU(-78);
 
-                driveInches(20);
+                driveInches(24);
 
                 robot.marker.setPosition(1.0);
                 driveInches(-5);
 
-                turnIMU((-robot.pos.firstAngle-45));
+                //turnIMU((-robot.pos.firstAngle-45));
+                driveInches(-24);
+
+                robot.hang.setPower(1.0);
+                while(robot.hang.getCurrentPosition() < -200.0 && opModeIsActive()) {
+                    telemetry.addData("hang", robot.hang.getCurrentPosition());
+                }
+                robot.hang.setPower(0.0);
+
+
                 break;
 
             case 1:
@@ -60,33 +70,60 @@ public class AutonRedDepot extends org.firstinspires.ftc.teamcode.Autonomous {
 
                 telemetry.addData("GO CENTER", goldPos);
                 telemetry.update();
-                turnIMU(-5);
-                driveInches(50);
+                //turnIMU(-5);
+                driveInches(4);
+                sleep(200);
+
+                turnIMU(-robot.pos.firstAngle);
+
+                driveInches(55);
 
                 robot.marker.setPosition(1.0);
-                driveInches(-10);
+                driveInches(-2);
 
+                robot.updatePosition();
                 turnIMU((-robot.pos.firstAngle-45));
+                driveInches(-16);
+
+                robot.hang.setPower(1.0);
+                while(robot.hang.getCurrentPosition() < -200.0 && opModeIsActive()) {
+                    telemetry.addData("hang", robot.hang.getCurrentPosition());
+                }
+                robot.hang.setPower(0.0);
+
                 break;
 
             case 2:
                 //Turn to the Right
                 telemetry.addData("GO RIGHT", goldPos);
                 telemetry.update();
-                turnIMU(-30);
+
+                driveInches(6);
+                robot.updatePosition();
+                turnIMU(-65);
                 sleep(100);
+
+                driveInches(45);
+                sleep(100);
+                driveInches(-8);
+
+                turnIMU(90);
 
                 driveInches(40);
-                sleep(100);
-                driveInches(-10);
-                turnIMU(40);
-
-                driveInches(30);
 
                 robot.marker.setPosition(1.0);
-                driveInches(-5);
+                //driveInches(-5);
 
-                turnIMU((-robot.pos.firstAngle-45));
+                turnIMU(-90);
+                //driveInches(-24);
+
+
+                robot.hang.setPower(1.0);
+                while(robot.hang.getCurrentPosition() < -200.0 && opModeIsActive()) {
+                    telemetry.addData("hang", robot.hang.getCurrentPosition());
+                }
+                robot.hang.setPower(0.0);
+
                 break;
         }
         sleep(2500);

@@ -52,20 +52,26 @@ public class QualifierTeleOp extends OpMode {
     // Declare OpMode members.
     private HardwareQualifierBot robot;
 
-    private boolean isPressed = false,
-                    isPressed2 = false,
-                    storing = false,
-                    collecting = false,             //false = delivery, true = collection
+    private boolean isPressed   = false,
+                    isPressed2  = false,
+                    storing     = false,
+                    collecting  = false,             // false = delivery, true = collection
                     lifting,
-                    spitting = false,
-                    hanging = false;
+                    descending  = false,
+                    spitting    = false,
+                    hanging     = false,
+                    CMode       = false;
 
-    private int trigger = 1,
-                trigger2 = 0;
+    private int     trigger     = 1,
+                    trigger2    = 0;
 
-    private double armAngle = 0;
+    private double  armAngle    = 0.0,
+                    extendAngle = 0.0,
+                    armTarget   = 160.0,
+                    extendTgt   = 850.0;
 
     private ElapsedTime runtime = new ElapsedTime();
+
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -134,55 +140,124 @@ public class QualifierTeleOp extends OpMode {
             hanging = false;
         } else if(gamepad2.right_bumper) {                                                          // Go up
             hanging = true;
-        }
-
-        if(hanging && robot.hang.getCurrentPosition() > -16800) {
+        } else if(hanging && robot.hang.getCurrentPosition() > -16800) {
             robot.hang.setPower(-1.0);
         } else {
             robot.hang.setPower(0.0);
         }
+
+
+        /*
+         *  Toggling the Collection Mode
+         *  Collect rotates between .5 and .7 MAX  40 --> .5 80 --> .65
+         *  slope = .00375 (3/800)
+         *  intercept = .35
+         *  Delivery rotates
+         *
+         */
+
+        //collection mode is even (%2 == 0)
+
+        if (gamepad1.right_trigger > .1 && gamepad1.left_bumper) {                                  // This is code for the Arm Movement
+            lifting = true;                                                                         // When the button is pressed, start lifting and
+            trigger2 = 3;                                                                           // Set the trigger to flag CMode false
+        }
+
+        CMode = (trigger2 % 2 == 0);
+
+        // Code to prevent adding to trigger multiple times while holding the button
+        if(isPressed2 && !gamepad1.x) {
+            trigger2++;
+        }
+
+        isPressed2 = gamepad1.x;
+        //60 motor: 1680 counts per revolution
+
+        armAngle = (robot.arm.getCurrentPosition()/(-5040.0)) * 360.0;
+        //armAngle = (-115 * robot.potentiometer.getVoltage()) + 195;
+
+        // Main if statement for determining Pivot Position
+        if(CMode) {                                                                                 // Collection Mode
+            if(gamepad1.b) {                                                                        // To push the other minerals away
+                robot.pivot.setPosition(.8);
+                spitting = true;                                                                    // To spit particles out with collection
+                collecting = false;                                                                 // Prevent multiple instances of setPosition
+            } else {
+                spitting = false;
+                collecting = true;                                                                  // After the button is released, resume collection mode
+            }
+
+            if(armAngle > 25 && armAngle < 80 && collecting) {                                      // Between the collecting arm range
+                robot.pivot.setPosition
+                        (Range.clip((3.0*armAngle / 800.0) + 0.34, .15, .65));    //Scale Servo value based on angle
+            }
+        } else {                                                                                    // Storage Mode
+            if(gamepad1.dpad_down && armAngle > 150) {                                              // To deliver the minerals after the arm achieves a certain angle
+                storing = false;
+                robot.pivot.setPosition(.7);
+            } else {
+                storing = true;
+            }
+
+            if(armAngle > 20 && storing) {                                                          // To bring the pivot up
+                robot.pivot.setPosition(Range.clip(armAngle / 180, .15, .875));
+            }
+        }
+
 
         /*
          *
          *  Rotating the Arm
          *
          */
-        if (gamepad1.right_trigger > .1 && gamepad1.left_bumper) {                                  // When the button is pressed, start lifting
-            lifting = true;
-        }
 
-        if(lifting && armAngle < 155) {                                                             // Only lift while angle is below a certain value
-            if(gamepad1.right_bumper) {
+        if(lifting && (Math.abs(extendAngle - extendTgt) > 40.0 || armAngle < armTarget)) {         // Only lift while angle is below a certain value
+            if(gamepad1.right_bumper || (armAngle > 150 && armPower > 0)) {
                 lifting = false;                                                                    // To cancel lifting if necessary
             }
 
-            armPower = Range.clip((155 - armAngle) / 40, .5, 1.0);
-            robot.extend.setPower
-                    (Range.clip(armPower*2.0/3.0, .25, 1.0));
-            robot.arm.setPower(armPower);                                                           // Setting power for lifting
+            if(Math.abs(extendAngle - extendTgt) > 200.0) {
+                robot.extend.setPower
+                        (Range.clip(-(Math.abs(extendAngle - extendTgt)) / 500.0, -1.0, -0.1));
+            } else {
+                robot.extend.setPower(0.0);
+            }
+
+            if(armAngle < armTarget) {
+                armPower = Range.clip((armTarget - armAngle) / 40.0, .375, 0.75);
+                robot.arm.setPower(armPower);                                                       // Setting power for lifting
+            } else {
+                robot.arm.setPower(0.0);
+            }
 
         } else {
             // lifting = false;                                                                     // Stop lifting
             if(gamepad1.right_trigger > .1) {                                                       // To finish lifting for the scoring
                 robot.arm.setPower(gamepad1.right_trigger);
+                descending = false;
             } else if(gamepad1.right_bumper) {                                                      // Put the arm back down
-                robot.arm.setPower(-.4);
+                robot.arm.setPower(-0.3);
+                descending = true;
             } else {
                 robot.arm.setPower(0);
+                descending =false;
             }
-        }
 
-        /*
-         *
-         *  Extending the Arm
-         *
-         */
-        if(extendPower > 0.2) {
-            robot.extend.setPower(extendPower);
-        } else if(gamepad1.left_bumper) {
-            robot.extend.setPower(-0.6);
-        } else {
-            robot.extend.setPower(0.0);
+            /*
+             *
+             *  Extending the Arm
+             *
+             */
+            if(extendPower > 0.2) {
+                robot.extend.setPower(extendPower);
+            } else if(gamepad1.left_bumper) {
+                robot.extend.setPower(-1.0);
+            } else if (descending) {
+                robot.extend.setPower(0.2);                                                         // Run the Extension at the same rate as arm
+            } else {
+                robot.extend.setPower(0.0);
+            }
+
         }
 
         /*
@@ -208,58 +283,8 @@ public class QualifierTeleOp extends OpMode {
 
         isPressed = gamepad1.a;
 
-        /*
-         *  Toggling the Collection Mode
-         *  Collect rotates between .5 and .7 MAX  40 --> .5 80 --> .65
-         *  slope = .00375 (3/800)
-         *  intercept = .35
-         *  Delivery rotates
-         *
-         */
 
-        //collection mode is even (%2 == 0)
-        boolean CMode = (trigger2 % 2 == 0);
-
-        // Code to prevent adding to trigger multiple times while holding the button
-        if(isPressed2 && !gamepad1.x) {
-            trigger2++;
-        }
-
-        isPressed2 = gamepad1.x;
-        //60 motor: 1680 counts per revolution
-
-        //armAngle = (robot.arm.getCurrentPosition()/(-5040.0)) * 360.0;
-        armAngle = (-115 * robot.potentiometer.getVoltage()) + 195;
-
-        // Main if statement for determining Pivot Position
-        if(CMode) {                                                                                 // Collection Mode
-            if(gamepad1.b) {                                                                        // To push the other minerals away
-                robot.pivot.setPosition(.8);
-                spitting = true;                                                                    // To spit particles out with collection
-                collecting = false;                                                                 // Prevent multiple instances of setPosition
-            } else {
-                spitting = false;
-                collecting = true;                                                                  // After the button is released, resume collection mode
-            }
-
-            if(armAngle > 25 && armAngle < 80 && collecting) {                                      // Between the collecting arm range
-                robot.pivot.setPosition
-                        (Range.clip((3.0*armAngle / 800.0) + 0.3375, .15, .65));  //Scale Servo value based on angle
-            }
-        } else {                                                                                    // Storage Mode
-            if(gamepad1.dpad_down && armAngle > 150) {                                              // To score the minerals after the arm achieves a certain angle
-                storing = false;
-                robot.pivot.setPosition(.7);
-            } else {
-                storing = true;
-            }
-
-            if(armAngle > 20 && storing) {                                                          // To bring the pivot up
-                robot.pivot.setPosition(Range.clip(armAngle / 180, .15, .875));
-            }
-        }
-
-
+        extendAngle = robot.extend.getCurrentPosition();
 
         // Show the elapsed game time and wheel power.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
@@ -269,9 +294,8 @@ public class QualifierTeleOp extends OpMode {
         telemetry.addData("Hang Position", robot.hang.getCurrentPosition());
         telemetry.addData("Rd1 Position", robot.rightDrive1.getCurrentPosition());
         telemetry.addData("Ld1 Position", robot.leftDrive1.getCurrentPosition());
-
+        telemetry.addData("Extend Enc", extendAngle);
         telemetry.addData("Potentiometer Input", robot.potentiometer.getVoltage());
-
 
 
     }

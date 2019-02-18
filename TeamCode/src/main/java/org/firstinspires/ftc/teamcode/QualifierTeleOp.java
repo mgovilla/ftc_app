@@ -68,7 +68,8 @@ public class QualifierTeleOp extends OpMode {
     private double  armAngle    = 0.0,
                     extendAngle = 0.0,
                     armTarget   = 160.0,
-                    extendTgt   = 850.0;
+                    extendTgt   = 850.0,
+                    CltRev      = -1.0;
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -102,12 +103,16 @@ public class QualifierTeleOp extends OpMode {
         double leftPower;
         double rightPower;
 
-        double hangPower    = gamepad2.right_trigger;
+        //double hangPower    = gamepad2.right_trigger;
         double armPower     = gamepad1.right_trigger;
         double extendPower  = gamepad1.left_trigger;
 
         double drive        = -gamepad1.left_stick_y + -gamepad2.left_stick_y;
-        double turn         =  gamepad1.right_stick_x + gamepad2.right_stick_x;
+        double turn         = gamepad1.right_stick_x + gamepad2.right_stick_x;
+
+        if(extendAngle < -2000.0) {
+            turn = turn / 1.5;
+        }
 
         leftPower           = Range.clip(drive + turn, -1.0, 1.0);
         rightPower          = Range.clip(drive - turn, -1.0, 1.0);
@@ -135,10 +140,10 @@ public class QualifierTeleOp extends OpMode {
          *  Setting Power to Hang
          *
          */
-        if(hangPower > 0.2) {                                                                       // Pulling Down
-            robot.hang.setPower(hangPower);
+        if(gamepad2.right_bumper) {                                                                       // Pulling Down
+            robot.hang.setPower(1.0);
             hanging = false;
-        } else if(gamepad2.right_bumper) {                                                          // Go up
+        } else if(gamepad2.right_trigger > 0.2) {                                                          // Go up
             hanging = true;
         } else if(hanging && robot.hang.getCurrentPosition() > -16800) {
             robot.hang.setPower(-1.0);
@@ -166,11 +171,11 @@ public class QualifierTeleOp extends OpMode {
         CMode = (trigger2 % 2 == 0);
 
         // Code to prevent adding to trigger multiple times while holding the button
-        if(isPressed2 && !gamepad1.x) {
+        if(isPressed2 && (!gamepad1.x && !gamepad2.x)) {
             trigger2++;
         }
 
-        isPressed2 = gamepad1.x;
+        isPressed2 = (gamepad1.x || gamepad2.x);
         //60 motor: 1680 counts per revolution
 
         armAngle = (robot.arm.getCurrentPosition()/(-5040.0)) * 360.0;
@@ -192,7 +197,7 @@ public class QualifierTeleOp extends OpMode {
                         (Range.clip((3.0*armAngle / 800.0) + 0.34, .15, .65));    //Scale Servo value based on angle
             }
         } else {                                                                                    // Storage Mode
-            if(gamepad1.dpad_down && armAngle > 150) {                                              // To deliver the minerals after the arm achieves a certain angle
+            if((gamepad1.dpad_down || gamepad2.dpad_down) && armAngle > 150) {                                              // To deliver the minerals after the arm achieves a certain angle
                 storing = false;
                 robot.pivot.setPosition(.7);
             } else {
@@ -235,7 +240,7 @@ public class QualifierTeleOp extends OpMode {
             if(gamepad1.right_trigger > .1) {                                                       // To finish lifting for the scoring
                 robot.arm.setPower(gamepad1.right_trigger);
                 descending = false;
-            } else if(gamepad1.right_bumper) {                                                      // Put the arm back down
+            } else if(gamepad1.right_bumper || gamepad2.left_bumper) {                                                      // Put the arm back down
                 robot.arm.setPower(-0.3);
                 descending = true;
             } else {
@@ -266,10 +271,10 @@ public class QualifierTeleOp extends OpMode {
          *
          */
         if(gamepad1.y || spitting) {                                                                // In case we need to spit out or push minerals
-            robot.collection.setPower(-1.0);
+            robot.collection.setPower(-1.0 * CltRev);
         } else {
             if(trigger % 2 == 0) {
-                robot.collection.setPower(1.0);                                                     // Turn collection on
+                robot.collection.setPower(1.0 * CltRev);                                            // Turn collection on
             } else {
                 robot.collection.setPower(-0.05);                                                   // Stop Collection
             }

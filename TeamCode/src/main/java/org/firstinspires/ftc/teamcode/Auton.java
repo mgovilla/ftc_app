@@ -10,6 +10,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -17,12 +18,14 @@ import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABE
 import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABEL_SILVER_MINERAL;
 import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.TFOD_MODEL_ASSET;
 
-abstract public class Autonomous extends LinearOpMode {
+abstract public class Auton extends LinearOpMode {
     HardwareQualifierBot robot;
 
     private static double GEAR_RATIO = 1.5;
     private static double CIRCUMFERENCE = 4.0 * Math.PI;
     private static double TICKS_PER_REV = 1120;
+
+    private static double CAMERA_THRESHOLD = 800.0; // Line where the minerals are considered sampling or in the crater for autonomous
 
     private int goldMineralPosition = 3; //default to the right
 
@@ -217,6 +220,88 @@ abstract public class Autonomous extends LinearOpMode {
 
                     }
                     telemetry.update();
+                }
+            }
+        }
+
+        if (tfod != null)
+            tfod.shutdown();
+
+        return goldMineralPosition;
+    }
+
+    int getGoldPosition(boolean Crater) {
+        List<Recognition> threshRecognitions = new ArrayList<>(); // List that holds the objects below the threshold
+        double startTime = getRuntime();
+        boolean recognized = false;
+
+        if (tfod != null) {
+            tfod.activate();
+        }
+
+        while (goldMineralPosition == 3 && getRuntime() - startTime < 5 && opModeIsActive()) {
+            if (tfod != null) {
+                // getUpdatedRecognitions() will return null if no new information is available since
+                // the last time that call was made.
+                if(!recognized) {
+                    List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+
+                    if (updatedRecognitions != null) {
+                        telemetry.addData("# Object Detected", threshRecognitions.size());
+
+                        for (Recognition r : updatedRecognitions) {
+                            telemetry.addData("Top Boundary", (int) r.getTop());
+                            if (r.getTop() > CAMERA_THRESHOLD) {
+                                threshRecognitions.add(r);
+                            }
+                        }
+                        telemetry.update();
+                        if (threshRecognitions.size() == 2) {
+
+                            recognized = true;
+                            int[] minerals = new int[2];
+
+                            for (int i = 0; i < 2; i++) {
+                                minerals[i] = (int) threshRecognitions.get(i).getLeft();
+                            }
+
+                            if (minerals[1] > minerals[0]) {
+                                /*
+                                 *       Mineral 1 is to the right of mineral 0
+                                 */
+
+                                if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                    telemetry.addData("Gold Mineral Position", "Center");
+                                    goldMineralPosition = 1;
+                                } else if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                    telemetry.addData("Gold Mineral Position", "Left");
+                                    goldMineralPosition = 0;
+                                } else {
+                                    telemetry.addData("Gold Mineral Position", "Right");
+                                    goldMineralPosition = 2;
+                                }
+                            } else {
+                                /*
+                                 *       Mineral 0 is to the right of mineral 1
+                                 */
+
+                                if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                    telemetry.addData("Gold Mineral Position", "Center");
+                                    goldMineralPosition = 1;
+                                } else if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                    telemetry.addData("Gold Mineral Position", "Left");
+                                    goldMineralPosition = 0;
+                                } else {
+                                    telemetry.addData("Gold Mineral Position", "Right");
+                                    goldMineralPosition = 2;
+                                }
+                            }
+
+                            telemetry.update();
+                        }
+                    }
+                    threshRecognitions.clear();
+
                 }
             }
         }

@@ -5,10 +5,10 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 
 /**
- * Autonomous for the Blue Side starting in front of the Depot, parking in the far crater
+ * Autonomous starting in front of the Depot, parking in the far crater
  */
 @Autonomous(name="Depot")
-public class AutonRedDepot extends org.firstinspires.ftc.teamcode.Autonomous {
+public class Depot extends Auton {
 
     public void runOpMode() {
         robot = new HardwareQualifierBot(hardwareMap, telemetry);

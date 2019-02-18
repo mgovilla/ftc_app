@@ -29,6 +29,8 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import android.support.annotation.NonNull;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -38,7 +40,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.Came
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
 /**
  * This 2018-2019 OpMode illustrates the basics of using the TensorFlow Object Detection API to
@@ -83,6 +89,10 @@ public class TensorFlowObjectDetectionBACK extends LinearOpMode {
      */
     private TFObjectDetector tfod;
 
+    List<Recognition> threshRecognitions = new ArrayList<>(); // List that holds the objects below the threshold
+
+    boolean recognized = false;
+
     @Override
     public void runOpMode() {
         // The TFObjectDetector uses the camera frames from the VuforiaLocalizer, so we create that
@@ -107,48 +117,63 @@ public class TensorFlowObjectDetectionBACK extends LinearOpMode {
             }
 
             while (opModeIsActive()) {
+
                 if (tfod != null) {
                     // getUpdatedRecognitions() will return null if no new information is available since
                     // the last time that call was made.
-                    List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                    if (updatedRecognitions != null) {
-                        telemetry.addData("# Object Detected", updatedRecognitions.size());
-                        if (updatedRecognitions.size() == 2) {
+                    if(!recognized) {
+                        List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
 
-                            int[] minerals = new int[2];
+                        if (updatedRecognitions != null) {
+                            telemetry.addData("# Object Detected", threshRecognitions.size());
 
-                            for (int i = 0; i < 2; i++) {
-                                minerals[i] = (int) updatedRecognitions.get(i).getLeft();
+                            for (Recognition r : updatedRecognitions) {
+                                telemetry.addData("Top Boundary", (int) r.getTop());
+                                if (r.getTop() > 775.0) {
+                                    threshRecognitions.add(r);
+                                }
                             }
+                            telemetry.update();
+                            if (threshRecognitions.size() == 2) {
 
-                            if (minerals[1] > minerals[0]) {
+                                //recognized = true;
+                                int[] minerals = new int[2];
+
+                                for (int i = 0; i < 2; i++) {
+                                    minerals[i] = (int) threshRecognitions.get(i).getLeft();
+                                }
+
+                                if (minerals[1] > minerals[0]) {
                             /*
                                     Mineral 1 is to the right of mineral 0
                              */
 
-                                if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                    telemetry.addData("Gold Mineral Position", "Center");
-                                } else if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                    telemetry.addData("Gold Mineral Position", "Left");
+                                    if (threshRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                        telemetry.addData("Gold Mineral Position", "Center");
+                                    } else if (threshRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                        telemetry.addData("Gold Mineral Position", "Left");
+                                    } else {
+                                        telemetry.addData("Gold Mineral Position", "Right");
+                                    }
                                 } else {
-                                    telemetry.addData("Gold Mineral Position", "Right");
-                                }
-                            } else {
                             /*
                                     Mineral 0 is to the right of mineral 1
                              */
 
-                                if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                    telemetry.addData("Gold Mineral Position", "Center");
-                                } else if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                    telemetry.addData("Gold Mineral Position", "Left");
-                                } else {
-                                    telemetry.addData("Gold Mineral Position", "Right");
+                                    if (threshRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                        telemetry.addData("Gold Mineral Position", "Center");
+                                    } else if (threshRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                        telemetry.addData("Gold Mineral Position", "Left");
+                                    } else {
+                                        telemetry.addData("Gold Mineral Position", "Right");
+                                    }
                                 }
-                            }
 
-                            telemetry.update();
+                                telemetry.update();
+                            }
                         }
+                        threshRecognitions.clear();
+
                     }
                 }
             }

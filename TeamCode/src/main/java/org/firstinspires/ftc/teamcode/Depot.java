@@ -37,7 +37,7 @@ public class Depot extends Auton {
         // case: 2 Knock down Right mineral
 
         switch (goldPos) {
-            default:
+            default: //DONE
                 //Turn to the left
                 telemetry.addData("GO LEFT", goldPos);
                 telemetry.update();
@@ -45,19 +45,20 @@ public class Depot extends Auton {
                 turnIMU(13);
                 driveInches(40);
                 sleep(100);
-                driveInches(-5);
+                driveInches(-4);
                 turnIMU(-78);
 
-                driveInches(24);
+                driveInches(22);
 
                 robot.marker.setPosition(1.0);
+                sleep(250);
                 driveInches(-5);
 
                 //turnIMU((-robot.pos.firstAngle-45));
-                driveInches(-24);
+                driveInches(-60, true);
 
                 robot.hang.setPower(1.0);
-                while(robot.hang.getCurrentPosition() < -200.0 && opModeIsActive()) {
+                while(robot.hang.getCurrentPosition() < -250.0 && opModeIsActive()) {
                     telemetry.addData("hang", robot.hang.getCurrentPosition());
                 }
                 robot.hang.setPower(0.0);
@@ -65,7 +66,7 @@ public class Depot extends Auton {
 
                 break;
 
-            case 1:
+            case 1: //DONE
                 //Go straight
 
                 telemetry.addData("GO CENTER", goldPos);
@@ -83,17 +84,17 @@ public class Depot extends Auton {
 
                 robot.updatePosition();
                 turnIMU((-robot.pos.firstAngle-45));
-                driveInches(-16);
+                driveInches(-57,  true);
 
                 robot.hang.setPower(1.0);
-                while(robot.hang.getCurrentPosition() < -200.0 && opModeIsActive()) {
+                while(robot.hang.getCurrentPosition() < -250.0 && opModeIsActive()) {
                     telemetry.addData("hang", robot.hang.getCurrentPosition());
                 }
                 robot.hang.setPower(0.0);
 
                 break;
 
-            case 2:
+            case 2: //DONE
                 //Turn to the Right
                 telemetry.addData("GO RIGHT", goldPos);
                 telemetry.update();
@@ -114,12 +115,12 @@ public class Depot extends Auton {
                 robot.marker.setPosition(1.0);
                 //driveInches(-5);
 
-                turnIMU(-90);
+                turnIMU(-87);
                 //driveInches(-24);
 
-
+                driveInches(-55, true);
                 robot.hang.setPower(1.0);
-                while(robot.hang.getCurrentPosition() < -200.0 && opModeIsActive()) {
+                while(robot.hang.getCurrentPosition() < -250.0 && opModeIsActive()) {
                     telemetry.addData("hang", robot.hang.getCurrentPosition());
                 }
                 robot.hang.setPower(0.0);

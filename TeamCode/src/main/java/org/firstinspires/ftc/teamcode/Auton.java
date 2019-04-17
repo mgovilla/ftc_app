@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
@@ -19,13 +20,14 @@ import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABE
 import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.TFOD_MODEL_ASSET;
 
 abstract public class Auton extends LinearOpMode {
+
     HardwareQualifierBot robot;
 
     private static double GEAR_RATIO = 1.5;
     private static double CIRCUMFERENCE = 4.0 * Math.PI;
     private static double TICKS_PER_REV = 1120;
 
-    private static double CAMERA_THRESHOLD = 800.0; // Line where the minerals are considered sampling or in the crater for autonomous
+    private static double CAMERA_THRESHOLD = 220.0; // Line where the minerals are considered sampling or in the crater for autonomous
 
     private int goldMineralPosition = 3; //default to the right
 
@@ -89,6 +91,10 @@ abstract public class Auton extends LinearOpMode {
 
                 power = Range.clip((robot.rightDrive1.getCurrentPosition() - target) / 350.0, 0.25, 0.6);
                 setPower(power);
+
+                if(robot.hang.getCurrentPosition() > -250.0) {
+                    robot.hang.setPower(0.0);
+                }
             }
         } else {
             while (Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 45 && !isStopRequested()) {
@@ -96,8 +102,52 @@ abstract public class Auton extends LinearOpMode {
                 telemetry.addData("Target", target);
                 telemetry.update();
 
-                power = Range.clip((target - robot.rightDrive1.getCurrentPosition()) / 350.0, -0.6, -0.25);
+                power = Range.clip((robot.rightDrive1.getCurrentPosition() - target) / 350.0, -0.6, -0.25);
                 setPower(power);
+
+                if(robot.hang.getCurrentPosition() > -250.0) {
+                    robot.hang.setPower(0.0);
+                }
+            }
+        }
+
+
+        setPower(0.0);
+
+    }
+
+    void driveInches(double distance, boolean tilt) {
+        double power;
+
+        double counts = ((-distance / (GEAR_RATIO * CIRCUMFERENCE))) * TICKS_PER_REV;
+        double target = robot.rightDrive1.getCurrentPosition() + counts;
+
+        if(robot.rightDrive1.getCurrentPosition() > target) { //go forward
+            while (Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 45 && !isStopRequested()) {
+                telemetry.addData("Motor Right 1", robot.rightDrive1.getCurrentPosition());
+                telemetry.addData("Target", target);
+                telemetry.update();
+
+
+                power = Range.clip((robot.rightDrive1.getCurrentPosition() - target) / 350.0, 0.25, 0.6);
+                if(!tilt) {
+                    setPower(power);
+                } else {
+                    setPower(power, power + 0.15);
+                }
+            }
+        } else {
+            while (Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 45 && !isStopRequested()) {
+                telemetry.addData("Motor Right 1", robot.rightDrive1.getCurrentPosition());
+                telemetry.addData("Target", target);
+                telemetry.update();
+
+                power = Range.clip((robot.rightDrive1.getCurrentPosition() - target) / 350.0, -0.6, -0.25);
+                if(!tilt) {
+                    setPower(power);
+                } else {
+                    setPower(power, power + 0.15);
+                }
             }
         }
 
@@ -109,15 +159,35 @@ abstract public class Auton extends LinearOpMode {
     void armToPos(DcMotor motor, double angle) {
 
         double power;
+
         angle = angle/360.0;
-        double counts = ((angle) * (-5040.0));
+        double counts = ((angle) * (10752.0));
         double target = motor.getCurrentPosition() + counts;
 
-        while (Math.abs(motor.getCurrentPosition() - target) > 45 && !isStopRequested()) {
+        while (Math.abs(motor.getCurrentPosition() - target) > 100 && !isStopRequested()) {
             telemetry.addData("Motor Pos", motor.getCurrentPosition());
             telemetry.addData("Target", target);
             telemetry.update();
-            power = Range.clip((target - motor.getCurrentPosition()) / 350, .5, .8);
+            power = Range.clip((target - motor.getCurrentPosition()) / 60.0, .4, .8);
+            motor.setPower(-power);
+        }
+
+        motor.setPower(0.0);
+    }
+
+    void armToPos(DcMotor motor, double angle, boolean reverse) {
+
+        double power;
+
+        angle = angle/360.0;
+        double counts = ((angle) * (10752.0));
+        double target = motor.getCurrentPosition() + counts;
+
+        while (Math.abs(motor.getCurrentPosition() - target) > 100 && !isStopRequested()) {
+            telemetry.addData("Motor Pos", motor.getCurrentPosition());
+            telemetry.addData("Target", target);
+            telemetry.update();
+            power = Range.clip((motor.getCurrentPosition() - target) / 60.0, .4, .8);
             motor.setPower(power);
         }
 
@@ -145,23 +215,21 @@ abstract public class Auton extends LinearOpMode {
     void unlatch() {
 
         armToPos(robot.arm, 20);
-        robot.pivot.setPosition(.15);
+        robot.hardStop.setPosition(1.0);
+        robot.pivot.setPosition(0.8);
 
         hangToPos(robot.hang, -16800); //34000 for 40 motor
+
+        robot.hardStop.setPosition(0.6);
+        robot.arm.setPower(.5);
+        sleep(375);
+        robot.arm.setPower(0.0);
 
         setPower(.25);
         sleep(100);
         setPower(0.0);
 
         sleep(250);
-
-        turnIMU(20);
-        sleep(200);
-
-
-
-
-
     }
 
     int getGoldPosition() {
@@ -192,14 +260,14 @@ abstract public class Auton extends LinearOpMode {
                              */
 
                             if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                telemetry.addData("Gold Mineral Position", "Center");
-                                goldMineralPosition = 1;
-                            } else if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                telemetry.addData("Gold Mineral Position", "Left");
-                                goldMineralPosition = 0;
-                            } else {
                                 telemetry.addData("Gold Mineral Position", "Right");
                                 goldMineralPosition = 2;
+                            } else if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                telemetry.addData("Gold Mineral Position", "Center");
+                                goldMineralPosition = 1;
+                            } else {
+                                telemetry.addData("Gold Mineral Position", "Left");
+                                goldMineralPosition =0;
                             }
                         } else {
                             /*
@@ -207,14 +275,14 @@ abstract public class Auton extends LinearOpMode {
                              */
 
                             if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                telemetry.addData("Gold Mineral Position", "Center");
-                                goldMineralPosition = 1;
-                            } else if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                telemetry.addData("Gold Mineral Position", "Left");
-                                goldMineralPosition = 0;
-                            } else {
                                 telemetry.addData("Gold Mineral Position", "Right");
                                 goldMineralPosition = 2;
+                            } else if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                telemetry.addData("Gold Mineral Position", "Center");
+                                goldMineralPosition = 1;
+                            } else {
+                                telemetry.addData("Gold Mineral Position", "Left");
+                                goldMineralPosition = 0;
                             }
                         }
 
@@ -271,14 +339,14 @@ abstract public class Auton extends LinearOpMode {
                                  */
 
                                 if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                    telemetry.addData("Gold Mineral Position", "Center");
-                                    goldMineralPosition = 1;
-                                } else if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                    telemetry.addData("Gold Mineral Position", "Left");
-                                    goldMineralPosition = 0;
-                                } else {
                                     telemetry.addData("Gold Mineral Position", "Right");
                                     goldMineralPosition = 2;
+                                } else if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                    telemetry.addData("Gold Mineral Position", "Center");
+                                    goldMineralPosition = 1;
+                                } else {
+                                    telemetry.addData("Gold Mineral Position", "Left");
+                                    goldMineralPosition =0;
                                 }
                             } else {
                                 /*
@@ -286,14 +354,14 @@ abstract public class Auton extends LinearOpMode {
                                  */
 
                                 if (updatedRecognitions.get(0).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                    telemetry.addData("Gold Mineral Position", "Center");
-                                    goldMineralPosition = 1;
-                                } else if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                    telemetry.addData("Gold Mineral Position", "Left");
-                                    goldMineralPosition = 0;
-                                } else {
                                     telemetry.addData("Gold Mineral Position", "Right");
                                     goldMineralPosition = 2;
+                                } else if (updatedRecognitions.get(1).getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                    telemetry.addData("Gold Mineral Position", "Center");
+                                    goldMineralPosition = 1;
+                                } else {
+                                    telemetry.addData("Gold Mineral Position", "Left");
+                                    goldMineralPosition = 0;
                                 }
                             }
 
@@ -346,43 +414,135 @@ abstract public class Auton extends LinearOpMode {
         float current = initial;
         target = target + initial;
 
-        double lastLeftPos = robot.leftDrive1.getCurrentPosition(), lastRightPos = robot.rightDrive1.getCurrentPosition();
-        double deltaLeft = 0, deltaRight = 0;
         double deltaAngle = 0, initTime, deltaTime;
         double i = 0;
 
-        while (Math.abs((current) - (target)) > .75 && getRuntime() - startTime < 4 && opModeIsActive()) {
+        while (Math.abs((current) - (target)) > 1.0 && getRuntime() - startTime < 4 && opModeIsActive()) {
             initTime = getRuntime();
 
             robot.updatePosition();
             current = robot.pos.firstAngle; //getHeading
-            telemetry.addData("toGo", current - target);
-            telemetry.update();
 
-            double power = Range.clip((Math.abs((current - target) / (target * 1.1)) + i), .35, .5);
+
+            double power = Range.clip((Math.abs((current - target) / (100.0)) + i), .275, .7);
 
 
             if (current < target) { //Must turn left
-                setPower(power + ((deltaLeft - deltaRight)), -power);
+                setPower(power, -power);
             } else if (current > target) { //Must turn right
-                setPower(-power, power + (deltaRight - deltaLeft));
+                setPower(-power, power);
             }
 
-            deltaLeft = Math.abs(robot.leftDrive1.getCurrentPosition() - lastLeftPos) / 1000;
-            deltaRight = Math.abs(robot.rightDrive1.getCurrentPosition() - lastRightPos) / 1000;
-            deltaTime = -initTime;
-
-            lastLeftPos = robot.leftDrive1.getCurrentPosition();
-            lastRightPos = robot.rightDrive1.getCurrentPosition();
+            deltaTime = getRuntime() - initTime;
 
             if (Math.abs(current - target) < 30)
-                i += .005 * (current - target) * deltaTime;
+                i += .0095 * Math.abs(current - target) * deltaTime;
 
-            if (i > .3) {
-                i = .3;
+            if (i > 0.3) {
+                i = 0.3;
             }
+
+
+            if(robot.hang.getCurrentPosition() > -250) {
+                robot.hang.setPower(0.0);
+            }
+
+            telemetry.addData("toGo", String.format("%.01f deg", current - target));
+            telemetry.addData("power", power);
+            telemetry.addData("i", i);
+
+            telemetry.update();
         }
         setPower(0.0);
+    }
+
+    void turnIMU(float target, double constant) {
+        robot.updatePosition();
+
+        double startTime = getRuntime();
+        float initial = robot.pos.firstAngle;
+        float current = initial;
+        target = target + initial;
+
+        double deltaAngle = 0, initTime, deltaTime;
+        double i = 0;
+
+        while (Math.abs((current) - (target)) > 1.0 && getRuntime() - startTime < 4 && opModeIsActive()) {
+            initTime = getRuntime();
+
+            robot.updatePosition();
+            current = robot.pos.firstAngle; //getHeading
+
+
+            double power = Range.clip((Math.abs((current - target) / (constant)) + i), .275, .5);
+
+
+            if (current < target) { //Must turn left
+                setPower(power, -power);
+            } else if (current > target) { //Must turn right
+                setPower(-power, power);
+            }
+
+            deltaTime = getRuntime() - initTime;
+
+            if (Math.abs(current - target) < 30)
+                i += .0095 * Math.abs(current - target) * deltaTime;
+
+            if (i > 0.3) {
+                i = 0.3;
+            }
+
+            if(robot.hang.getCurrentPosition() > -250) {
+                robot.hang.setPower(0.0);
+            }
+
+            telemetry.addData("toGo", String.format("%.01f deg", current - target));
+            telemetry.addData("power", power);
+            telemetry.addData("i", i);
+
+            telemetry.update();
+        }
+        setPower(0.0);
+    }
+
+    void wallFollow(double distanceThreshold, int distance) {
+        double error, angleError;
+        double counts = ((-distance / (1.5 * 12.56))) * 1120;
+        double target = robot.rightDrive1.getCurrentPosition() + counts;
+        double rightPower, leftPower;
+        robot.updatePosition();
+
+        double initAngle = robot.pos.firstAngle;
+
+        while(Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 50 && opModeIsActive()) {
+            robot.updatePosition();
+            error = robot.dist.getDistance(DistanceUnit.INCH) - distanceThreshold;
+            angleError = initAngle - robot.pos.firstAngle;
+
+            if(angleError > 25) {
+
+                turnIMU((float) angleError);
+
+            } else {
+                if (Math.abs(error) > 0.2) {
+                    rightPower = 0.3 - Range.clip(error / 4.0, -0.2, 0.2);
+                    leftPower = 0.3 + Range.clip(error / 4.0, -0.2, 0.2);
+                } else {
+                    rightPower = 0.4;
+                    leftPower = 0.4;
+                }
+
+                setPower(rightPower, leftPower);
+            }
+
+            telemetry.addData("range", String.format("%.01f in", robot.dist.getDistance(DistanceUnit.INCH)));
+            telemetry.addData("angle Error", String.format("%.01f deg", angleError));
+            telemetry.update();
+
+        }
+
+        setPower(0.0);
+
     }
 
     String formatAngle(AngleUnit angleUnit, double angle) {

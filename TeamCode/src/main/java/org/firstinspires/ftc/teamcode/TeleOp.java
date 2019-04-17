@@ -29,47 +29,49 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 /**
- * Main TeleOp for 12/8 Qualifier
+ * Main TeleOp for 4/12 Scrimmage
  * Tank Drive
  * Encoder Arm Angle Tracking
- * Potentiometer: 1.65 v at 0deg and 0 v at 185deg
- * linear: 115 degrees per volt
  *
  */
 
-@TeleOp(name="TeleOp", group="Iterative Opmode")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="New Arm test", group="Iterative Opmode")
 
-public class QualifierTeleOp extends OpMode {
+public class TeleOp extends OpMode {
     // Declare OpMode members.
     private HardwareQualifierBot robot;
 
     private boolean isPressed   = false,
                     isPressed2  = false,
+                    isPressed3  = false,
                     storing     = false,
+                    scoring     = false,
                     collecting  = false,             // false = delivery, true = collection
-                    lifting,
+                    lifting     = false,
                     descending  = false,
                     spitting    = false,
                     hanging     = false,
                     CMode       = false;
 
     private int     trigger     = 1,
-                    trigger2    = 0;
+                    trigger2    = 0,
+                    trigger3    = 1;
 
     private double  armAngle    = 0.0,
                     extendAngle = 0.0,
-                    armTarget   = 160.0,
-                    extendTgt   = 750.0,
-                    CltRev      = -1.0;
+                    armTarget   = -50.0,
+                    extendTgt   = 440.0,
+                    CltRev      = -1.0,
+                    extendPower = 0.0,
+                    armPower = 0.0,
+                    offset = 0.0;
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -82,7 +84,12 @@ public class QualifierTeleOp extends OpMode {
         robot = new HardwareQualifierBot(hardwareMap, telemetry);
 
         robot.init();
+
+
+
         telemetry.addData("Status", "Initialized");
+
+
         // Tell the driver that initialization is complete.
     }
 
@@ -99,24 +106,23 @@ public class QualifierTeleOp extends OpMode {
      */
     @Override
     public void loop() {
+
+        armAngle = (robot.arm.getCurrentPosition()/(10752.0)) * 360.0 + offset;
+        extendAngle = robot.extend.getCurrentPosition();
+
+        /*
+         * DRIVE Block
+         */
+
         // Setup a variable for each drive wheel to save power level for telemetry
         double leftPower;
         double rightPower;
 
-        //double hangPower    = gamepad2.right_trigger;
-        double armPower     = gamepad1.right_trigger;
-        double extendPower  = gamepad1.left_trigger;
-
         double drive        = -gamepad1.left_stick_y + -gamepad2.left_stick_y;
         double turn         = gamepad1.right_stick_x + gamepad2.right_stick_x;
 
-        if(extendAngle < -2000.0) {
-            turn = turn / 1.25;
-        }
-
         leftPower           = Range.clip(drive + turn, -1.0, 1.0);
         rightPower          = Range.clip(drive - turn, -1.0, 1.0);
-
 
         // Send calculated power to wheels
         if(Math.abs(leftPower) > 0.2) {
@@ -133,35 +139,39 @@ public class QualifierTeleOp extends OpMode {
         } else {
             robot.rightDrive1.setPower(0.0);
             robot.rightDrive2.setPower(0.0);
-        }
+        } // Drive Control
 
         /*
-         *
-         *  Setting Power to Hang
-         *
+         * DRIVE Block
          */
-        if(gamepad2.right_bumper) {                                                                 // Pulling Down
-            robot.hang.setPower(1.0);
-            hanging = false;
-        } else if(gamepad2.right_trigger > 0.2) {                                                   // Go up
-            hanging = true;
-        } else if(hanging && robot.hang.getCurrentPosition() > -16800) {
-            robot.hang.setPower(-1.0);
+
+        /*
+         * COLLECTION Block
+         */
+
+        if(gamepad1.y || spitting) {                                                                // In case we need to spit out or push minerals
+            robot.collection.setPower(1.0);
         } else {
-            robot.hang.setPower(0.0);
+            if(trigger % 2 == 0) {
+                robot.collection.setPower(-1.0);                                                    // Turn collection on
+            } else {
+                robot.collection.setPower(0.0);                                                     // Stop Collection
+            }
+        }
+        // Code to prevent adding to trigger multiple times while holding the button
+        if(isPressed && !gamepad1.a) {
+            trigger++;
         }
 
+        isPressed = gamepad1.a; // Collection Control
 
         /*
-         *  Toggling the Collection Mode
-         *  Collect rotates between .5 and .7 MAX  40 --> .5 80 --> .65
-         *  slope = .00375 (3/800)
-         *  intercept = .35
-         *  Delivery rotates
-         *
+         * COLLECTION Block
          */
 
-        //collection mode is even (%2 == 0)
+        /*
+         * SERVO CONTROL Block
+         */
 
         CMode = (trigger2 % 2 == 0);
 
@@ -173,148 +183,143 @@ public class QualifierTeleOp extends OpMode {
         isPressed2 = (gamepad1.x || gamepad2.x);
         //60 motor: 1680 counts per revolution
 
-        armAngle = (robot.arm.getCurrentPosition()/(-5040.0)) * 360.0;
-        //armAngle = (-115 * robot.potentiometer.getVoltage()) + 195;
-
         // Main if statement for determining Pivot Position
         if(CMode) {                                                                                 // Collection Mode
             if(gamepad1.b) {                                                                        // To push the other minerals away
-                robot.pivot.setPosition(.8);
+                robot.pivot.setPosition(0.675);
                 spitting = true;                                                                    // To spit particles out with collection
                 collecting = false;                                                                 // Prevent multiple instances of setPosition
             } else {
+                robot.pivot.setPosition(0.4);
                 spitting = false;
                 collecting = true;                                                                  // After the button is released, resume collection mode
             }
-
-            if(armAngle > 25 && armAngle < 80 && collecting) {                                      // Between the collecting arm range
-                robot.pivot.setPosition
-                        (Range.clip((3.0*armAngle / 800.0) + 0.36, .15, .65));    //Scale Servo value based on angle (.34)
-            }
         } else {                                                                                    // Storage Mode
-            if((gamepad1.dpad_down || gamepad2.dpad_down) && armAngle > 150) {                      // To deliver the minerals after the arm achieves a certain angle
+            if((gamepad1.dpad_down || gamepad2.dpad_down) && armAngle < -48.0) {                      // To deliver the minerals after the arm achieves a certain angle
                 storing = false;
-                robot.pivot.setPosition(.65);
+                robot.pivot.setPosition(0.5);
+                isPressed3 = true;
             } else {
                 storing = true;
             }
 
-            if(armAngle > 20 && storing) {                                                          // To bring the pivot up
-                robot.pivot.setPosition(Range.clip(armAngle / 180, .15, .875));
+            if(armAngle < 35 && storing) {                                                          // To bring the pivot up
+                robot.pivot.setPosition
+                        (Range.clip((-4.0*armAngle / 900.0) + 0.6, .15, 0.9));
             }
-        }
-
+        } // Collection and storage mode control
 
         /*
-         *
-         *  Rotating the Arm
-         *
+         * SERVO CONTROL Block
          */
+
+
+
+
+        if(gamepad1.right_bumper) {
+            //robot.extend.setPower(1.0);
+            extendPower = 1.0;
+        } else if(gamepad1.left_bumper) {
+            //robot.extend.setPower(-0.5);
+            extendPower = -0.75;
+        } else {
+            extendPower = 0.0;
+        }
+
+        if (robot.extend.getCurrentPosition() > -250 && extendPower < 0.0) {
+            //robot.extend.setPower(0.0);
+            extendPower = 0.0;
+        }
+
+        robot.extend.setPower(extendPower);
+
 
         if (gamepad1.right_trigger > .1 && gamepad1.left_bumper) {                                  // This is code for the Arm Movement
             lifting = true;                                                                         // When the button is pressed, start lifting and
-            trigger2 = 3;                                                                           // Set the trigger to flag CMode false
+            trigger2 = 3;                                                                                        // Set the trigger to flag CMode false
         }
 
-        if(lifting && (Math.abs(extendAngle - extendTgt) > 40.0 || armAngle < armTarget)) {         // Only lift while angle is below a certain value
-            if((gamepad1.right_bumper || gamepad2.left_bumper)
-                    || (armAngle > 150 && armPower > 0)) {
+        if(lifting && (Math.abs(extendAngle - extendTgt) > 40.0 || armAngle > armTarget)) {         // Only lift while angle is above a certain value **
+            if((gamepad1.left_trigger > 0 || gamepad2.left_trigger > 0)||(armAngle < -50.0 && armPower > 0)) {
                 lifting = false;                                                                    // To cancel lifting if necessary
             }
 
-            if(Math.abs(extendAngle - extendTgt) > 200.0) {
-                robot.extend.setPower
-                        (Range.clip(-(Math.abs(extendAngle - extendTgt)) / 500.0, -1.0, -0.1));
-            } else if (extendPower > 0.2) {
+            /*if(Math.abs(extendAngle - extendTgt) > 100.0) {
+                if(extendAngle > extendTgt) {
+                    robot.extend.setPower
+                            (Range.clip((Math.abs(extendAngle - extendTgt)) / 260.0, 0.3, 1.0));
+                } else {
+                    robot.extend.setPower
+                            (Range.clip((-Math.abs(extendAngle - extendTgt)) / 260.0, -1.0, -0.3));
+                }
+            } else if (extendPower < -0.2) {
                 robot.extend.setPower(extendPower);
             } else {
                 robot.extend.setPower(0.0);
-            }
+            }*/
 
-            if(armAngle < armTarget) {
-                armPower = Range.clip((armTarget - armAngle) / 40.0, .375, 0.75);
+            if(armAngle > armTarget) {
+                armPower = Range.clip((Math.abs(armTarget - armAngle)) / 60.0, 0.375, 1.0);
                 robot.arm.setPower(armPower);                                                       // Setting power for lifting
             } else {
                 robot.arm.setPower(0.0);
+                armPower = 0.0;
             }
 
         } else {
             // lifting = false;                                                                     // Stop lifting
-            if(gamepad1.right_trigger > .1) {                                                       // To finish lifting for the scoring
+            if(gamepad1.right_trigger > 0.2) {
                 robot.arm.setPower(gamepad1.right_trigger);
-                descending = false;
-            } else if(gamepad1.right_bumper || gamepad2.left_bumper) {                              // Put the arm back down
-                robot.arm.setPower(-0.3);
-                descending = true;
+            } else if (gamepad1.left_trigger > 0.2 || gamepad2.left_trigger > 0.2) {
+                robot.arm.setPower(-Range.clip(gamepad1.left_trigger + gamepad2.left_trigger, 0, 1.0));
             } else {
-                robot.arm.setPower(0);
-                descending = false;
+                robot.arm.setPower(0.0);
             }
 
-            /*
-             *
-             *  Extending the Arm
-             *
-             */
-            if(extendPower > 0.2) {
-                robot.extend.setPower(extendPower);
-            } else if(gamepad1.left_bumper) {
-                robot.extend.setPower(-1.0);
-            } else if (descending) {
-                robot.extend.setPower(0.2);                                                         // Run the Extension at the same rate as arm
-            } else {
-                robot.extend.setPower(0.0);
+            if(armAngle < -48.0) {
+                scoring = true;
             }
-
         }
 
+
         /*
-         *
-         *  Toggling the Collection
-         *
+         *  Setting Power to Hang
          */
-        if(gamepad1.y || spitting) {                                                                // In case we need to spit out or push minerals
-            robot.collection.setPower(-1.0 * CltRev);
+
+        if(gamepad2.right_bumper) {                                                                 // Pulling Down
+            robot.hang.setPower(1.0);
+            hanging = false;
+        } else if(gamepad2.right_trigger > 0.2) {                                                   // Go up
+            hanging = true;
+        } else if(hanging && robot.hang.getCurrentPosition() > -16800) {
+            robot.hang.setPower(-1.0);
         } else {
-            if(trigger % 2 == 0) {
-                robot.collection.setPower(1.0 * CltRev);                                            // Turn collection on
-            } else {
-                robot.collection.setPower(0.0);                                                     // Stop Collection
-            }
-        }
-
-
-        // Code to prevent adding to trigger multiple times while holding the button
-        if(isPressed && !gamepad1.a) {
-            trigger++;
-        }
-
-        isPressed = gamepad1.a;
+            robot.hang.setPower(0.0);
+        } // HANG control
 
         /*
-         *
-         *  Marker Control
-         *
+         *  Setting Power to Hang
          */
-        if (gamepad2.a) {
-            robot.marker.setPosition(1.0);
-        } else if(gamepad2.b) {
-            robot.marker.setPosition(0.4);
+
+
+
+        if(gamepad2.b) {
+            robot.hardStop.setPosition(1.0);
+        } else {
+            robot.hardStop.setPosition(0.6);
         }
 
-        extendAngle = robot.extend.getCurrentPosition();
 
-        // Show the elapsed game time and wheel power.
-        telemetry.addData("Status", "Run Time: " + runtime.toString());
+        if(isPressed3 && !gamepad1.right_stick_button) {
+            offset = offset + (-50.0 - armAngle);
+        }
+        isPressed3 = gamepad1.right_stick_button;
+
         telemetry.addData("Arm Angle", armAngle);
-        telemetry.addData("Servo Position", Range.clip(armAngle / 180, .15, .875));
-        telemetry.addData("Arm Position", robot.arm.getCurrentPosition());
-        telemetry.addData("Hang Position", robot.hang.getCurrentPosition());
-        telemetry.addData("Rd1 Position", robot.rightDrive1.getCurrentPosition());
-        telemetry.addData("Ld1 Position", robot.leftDrive1.getCurrentPosition());
-        telemetry.addData("Extend Enc", extendAngle);
-        telemetry.addData("Potentiometer Input", robot.potentiometer.getVoltage());
+        telemetry.addData("Potentiometer Voltage", robot.potentiometer.getVoltage());
+        telemetry.addData("Extend Position", robot.extend.getCurrentPosition());
 
+        telemetry.addData("Servo position", robot.pivot.getPosition());
 
     }
 

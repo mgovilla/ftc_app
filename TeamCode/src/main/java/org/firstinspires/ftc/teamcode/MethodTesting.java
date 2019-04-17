@@ -29,33 +29,38 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.Func;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 
 import java.util.Locale;
 
 /**
- * {@link SensorIMU} gives a short demo on how to use the BNO055 Inertial Motion Unit (IMU) from AdaFruit.
+ * {@link MethodTesting} gives a short demo on how to use the BNO055 Inertial Motion Unit (IMU) from AdaFruit.
  *
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  *
  * @see <a href="http://www.adafruit.com/products/2472">Adafruit IMU</a>
  */
-@TeleOp(name = "Sensor: BNO055 IMU", group = "Sensor")
-@Disabled                            // Comment this out to add to the opmode list
-public class SensorIMU extends Auton {
+@Autonomous(name = "Vuforia")
+
+public class MethodTesting extends Auton {
 
     @Override
     public void runOpMode() {
         robot = new HardwareQualifierBot(hardwareMap, telemetry);
         robot.init();
+        robot.imu.initialize(robot.parameters);
+        sleep(100);
 
         initVuforia();
 
@@ -68,20 +73,23 @@ public class SensorIMU extends Auton {
         // algorithm here just reports accelerations to the logcat log; it doesn't actually
         // provide positional information.
 
-        composeTelemetry();
-
         while(!isStarted()) {
+            robot.updatePosition();
+            telemetry.addData("Heading", String.format("%.01f deg", robot.pos.firstAngle));
             telemetry.update();
-            idle();
         }
         // Wait until we're told to go
         waitForStart();
 
+        while(opModeIsActive()) {
 
-        // Start the logging of measured acceleration
-        robot.imu.startAccelerationIntegration(new Position(), new Velocity(), 1000);
+            int goldPos = getGoldPosition(true);
 
-        turnIMU(90);
+            telemetry.addData("Position", goldPos);
+            telemetry.update();
+
+
+        }
 
     }
 
@@ -89,58 +97,5 @@ public class SensorIMU extends Auton {
     // Telemetry Configuration
     //----------------------------------------------------------------------------------------------
 
-    void composeTelemetry() {
 
-        // At the beginning of each telemetry update, grab a bunch of data
-        // from the IMU that we will then display in separate lines.
-        telemetry.addAction(new Runnable() { @Override public void run()
-                {
-                // Acquiring the angles is relatively expensive; we don't want
-                // to do that in each of the three items that need that info, as that's
-                // three times the necessary expense.
-                robot.updatePosition();
-                }
-            });
-
-        telemetry.addLine()
-            .addData("status", new Func<String>() {
-                @Override public String value() {
-                    return robot.imu.getSystemStatus().toShortString();
-                    }
-                })
-            .addData("calib", new Func<String>() {
-                @Override public String value() {
-                    return robot.imu.getCalibrationStatus().toString();
-                    }
-                });
-
-        telemetry.addLine()
-            .addData("heading", new Func<String>() {
-                @Override public String value() {
-                    return formatAngle(robot.pos.angleUnit, robot.pos.firstAngle);
-                    }
-                })
-            .addData("roll", new Func<String>() {
-                @Override public String value() {
-                    return formatAngle(robot.pos.angleUnit, robot.pos.secondAngle);
-                    }
-                })
-            .addData("pitch", new Func<String>() {
-                @Override public String value() {
-                    return formatAngle(robot.pos.angleUnit, robot.pos.thirdAngle);
-                    }
-                });
-        }
-
-    //----------------------------------------------------------------------------------------------
-    // Formatting
-    //----------------------------------------------------------------------------------------------
-
-    String formatAngle(AngleUnit angleUnit, double angle) {
-        return formatDegrees(AngleUnit.DEGREES.fromUnit(angleUnit, angle));
-    }
-
-    String formatDegrees(double degrees){
-        return String.format(Locale.getDefault(), "%.1f", AngleUnit.DEGREES.normalize(degrees));
-    }
 }

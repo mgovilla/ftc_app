@@ -84,9 +84,6 @@ public class TeleOp extends OpMode {
         robot = new HardwareQualifierBot(hardwareMap, telemetry);
 
         robot.init();
-
-
-
         telemetry.addData("Status", "Initialized");
 
 
@@ -121,9 +118,13 @@ public class TeleOp extends OpMode {
         double drive        = -gamepad1.left_stick_y + -gamepad2.left_stick_y;
         double turn         = gamepad1.right_stick_x + gamepad2.right_stick_x;
 
-        leftPower           = Range.clip(drive + turn, -1.0, 1.0);
-        rightPower          = Range.clip(drive - turn, -1.0, 1.0);
+        leftPower = Range.clip(drive + turn, -1.0, 1.0);
+        rightPower = Range.clip(drive - turn, -1.0, 1.0);
 
+        if(armAngle < -48 && robot.extend.getCurrentPosition() < -1000) {
+            leftPower = leftPower/2.0;
+            rightPower = rightPower/2.0;
+        }
         // Send calculated power to wheels
         if(Math.abs(leftPower) > 0.2) {
             robot.leftDrive1.setPower(leftPower);
@@ -195,9 +196,9 @@ public class TeleOp extends OpMode {
                 collecting = true;                                                                  // After the button is released, resume collection mode
             }
         } else {                                                                                    // Storage Mode
-            if((gamepad1.dpad_down || gamepad2.dpad_down) && armAngle < -48.0) {                      // To deliver the minerals after the arm achieves a certain angle
+            if((gamepad1.dpad_down || gamepad2.dpad_down) && armAngle < -48.0) {                    // To deliver the minerals after the arm achieves a certain angle
                 storing = false;
-                robot.pivot.setPosition(0.5);
+                robot.pivot.setPosition(0.55);
                 isPressed3 = true;
             } else {
                 storing = true;
@@ -226,7 +227,7 @@ public class TeleOp extends OpMode {
             extendPower = 0.0;
         }
 
-        if (robot.extend.getCurrentPosition() > -250 && extendPower < 0.0) {
+        if (robot.extend.getCurrentPosition() > -200 && extendPower < 0.0) {
             //robot.extend.setPower(0.0);
             extendPower = 0.0;
         }

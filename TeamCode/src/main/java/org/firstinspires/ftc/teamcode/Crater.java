@@ -16,6 +16,7 @@ public class Crater extends Auton {
     public void runOpMode() {
         robot = new HardwareQualifierBot(hardwareMap, telemetry);
         robot.init();
+        robot.pivot.setPosition(1.0);
         robot.imu.initialize(robot.parameters);
         sleep(100);
         initVuforia();
@@ -45,7 +46,7 @@ public class Crater extends Auton {
                 telemetry.addData("GO LEFT", goldPos);
                 telemetry.update();
 
-                turnIMU(36);
+                turnIMU(36, 50);
 
                 robot.hang.setPower(1.0);
                 // Go forward until the mineral is pushed off
@@ -56,40 +57,22 @@ public class Crater extends Auton {
                 driveInches(-10);
                 sleep(200);
 
-                while(robot.hang.getCurrentPosition() < -250) {
-                    telemetry.addData("runtime", getRuntime());
-                    telemetry.update();
-                }
-                robot.hang.setPower(0.0);
                 // Turn left until the front of the robot is toward the wall (~90 deg)
                 robot.updatePosition();
                 turnIMU(-97 - robot.pos.firstAngle);
                 sleep(100);
 
                 // Drive forward to the wall (~50-60 inches)
-                driveInches(-40);
+                driveInches(-30);
                 sleep(100);
 
                 // Turn parallel to the wall (~45 degrees more)
                 robot.updatePosition();
-                turnIMU(-45 - robot.pos.firstAngle);
+                turnIMU(-50 - robot.pos.firstAngle);
 
-//                thresh = robot.dist.getDistance(DistanceUnit.INCH);
-//                if(thresh > 5) {
-//                    thresh = 5.0;
-//                }
-//
-//                wallFollow(thresh, 40);
-//
-//
-//                robot.updatePosition();
-//                turnIMU(133 - robot.pos.firstAngle);
-//
-//                robot.marker.setPosition(1.0);
-                sleep(100);
-                // Drive back and park
-                //driveInches(-76.0);
 
+                driveInches(-10.0);
+                scoreMarkerAndPark(25);
                 break;
 
             case 1:
@@ -98,14 +81,14 @@ public class Crater extends Auton {
                 telemetry.addData("GO CENTER", goldPos);
                 telemetry.update();
 
-                turnIMU(20);
+                turnIMU(20, 50);
                 sleep(200);
 
                 driveInches(4);
                 sleep(200);
 
                 robot.updatePosition();
-                turnIMU(-robot.pos.firstAngle);
+                turnIMU(-robot.pos.firstAngle, 50);
 
                 robot.hang.setPower(1.0);
                 // Go forward until the mineral is pushed off
@@ -115,12 +98,6 @@ public class Crater extends Auton {
                 // Drive back for space to turn without hitting silver mineral
                 driveInches(-15);
                 sleep(200);
-
-                while(robot.hang.getCurrentPosition() < -250) {
-                    telemetry.addData("runtime", getRuntime());
-                    telemetry.update();
-                }
-                robot.hang.setPower(0.0);
                 // Turn left until the front of the robot is toward the wall (~90 deg)
                 robot.updatePosition();
                 turnIMU(-97 - robot.pos.firstAngle);
@@ -134,24 +111,8 @@ public class Crater extends Auton {
                 robot.updatePosition();
                 turnIMU(-45 - robot.pos.firstAngle);
 
-                // Drive along the wall (avoid the silver mineral) (~60 inches)
-
-//                thresh = robot.dist.getDistance(DistanceUnit.INCH);
-//
-//                if(thresh > 5) {
-//                    thresh = 5.0;
-//                }
-//
-//                wallFollow(thresh, 35);
-//
-//                // Score the marker
-//                robot.updatePosition();
-//                turnIMU(133 - robot.pos.firstAngle);
-//
-//                robot.marker.setPosition(1.0);
-//                sleep(100);
-//                // Drive back and park
-//                driveInches(-72.0);
+                driveInches(-6);
+                scoreMarkerAndPark(25);
 
 
                 break;
@@ -177,49 +138,24 @@ public class Crater extends Auton {
                 driveInches(-13);
                 sleep(200);
 
-                while(robot.hang.getCurrentPosition() < -250) {
-                    telemetry.addData("runtime", getRuntime());
-                    telemetry.update();
-                }
-                robot.hang.setPower(0.0);
                 // Turn left until the front of the robot is toward the wall (~90 deg)
                 robot.updatePosition();
                 turnIMU(-95 - robot.pos.firstAngle);
                 sleep(100);
 
                 // Drive forward to the wall (~50-60 inches)
-                driveInches(-45);
+                driveInches(-43);
                 sleep(100);
 
                 // Turn parallel to the wall (~45 degrees more)
 
                 robot.updatePosition();
-                turnIMU(-45 - robot.pos.firstAngle);
+                turnIMU(-48 - robot.pos.firstAngle);
 
-//                thresh = robot.dist.getDistance(DistanceUnit.INCH);
-//
-//                if(thresh > 5) {
-//                    thresh = 5.0;
-//                }
-//
-//                wallFollow(thresh, 40);
-//
-//
-//                robot.updatePosition();
-//                turnIMU(133 - robot.pos.firstAngle);
-//
-//                robot.marker.setPosition(1.0);
-//                sleep(100);
-//                // Drive back and park
-//                driveInches(-76.0);
+                driveInches(-8.0);
+                scoreMarkerAndPark(23);
 
                 break;
-        }
-        sleep(2500);
-
-        while(opModeIsActive()) {
-            telemetry.addData("Gold Position", goldPos);
-            telemetry.update();
         }
 
         // Lower down onto the field

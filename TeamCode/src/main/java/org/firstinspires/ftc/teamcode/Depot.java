@@ -13,6 +13,9 @@ public class Depot extends Auton {
     public void runOpMode() {
         robot = new HardwareQualifierBot(hardwareMap, telemetry);
         robot.init();
+
+        robot.pivot.setPosition(1.0);
+
         robot.imu.initialize(robot.parameters);
 
         initVuforia();
@@ -41,7 +44,7 @@ public class Depot extends Auton {
                 //Turn to the left
                 telemetry.addData("GO LEFT", goldPos);
                 telemetry.update();
-                driveInches(9);
+                /*driveInches(9);
                 turnIMU(13);
                 driveInches(40);
                 sleep(100);
@@ -49,8 +52,6 @@ public class Depot extends Auton {
                 turnIMU(-78);
 
                 driveInches(22);
-
-                robot.marker.setPosition(1.0);
                 sleep(250);
                 driveInches(-5);
 
@@ -63,6 +64,28 @@ public class Depot extends Auton {
                 }
                 robot.hang.setPower(0.0);
 
+                */
+
+                turnIMU(36, 50);
+
+                robot.hang.setPower(1.0);
+                // Go forward until the mineral is pushed off
+                driveInches(30);
+                sleep(200);
+
+                // Drive back for space to turn without hitting silver mineral
+                driveInches(-10);
+                sleep(200);
+
+                robot.updatePosition();
+                turnIMU(83-robot.pos.firstAngle);
+
+                driveInches(35);
+                robot.updatePosition();
+                turnIMU(40-robot.pos.firstAngle);
+
+                driveInches(-10.0);
+                scoreMarkerAndPark(25);
 
                 break;
 
@@ -79,7 +102,6 @@ public class Depot extends Auton {
 
                 driveInches(55);
 
-                robot.marker.setPosition(1.0);
                 driveInches(-2);
 
                 robot.updatePosition();
@@ -112,7 +134,6 @@ public class Depot extends Auton {
 
                 driveInches(40);
 
-                robot.marker.setPosition(1.0);
                 //driveInches(-5);
 
                 turnIMU(-87);

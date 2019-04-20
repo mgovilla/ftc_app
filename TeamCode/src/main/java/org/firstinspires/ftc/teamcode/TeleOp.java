@@ -42,7 +42,7 @@ import com.qualcomm.robotcore.util.Range;
  *
  */
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="New Arm test", group="Iterative Opmode")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="TeleOp", group="Iterative Opmode")
 
 public class TeleOp extends OpMode {
     // Declare OpMode members.
@@ -55,13 +55,13 @@ public class TeleOp extends OpMode {
                     scoring     = false,
                     collecting  = false,             // false = delivery, true = collection
                     lifting     = false,
-                    descending  = false,
+                    extending  = false,
                     spitting    = false,
                     hanging     = false,
                     CMode       = false;
 
     private int     trigger     = 1,
-                    trigger2    = 0,
+                    trigger2    = 1,
                     trigger3    = 1;
 
     private double  armAngle    = 0.0,
@@ -196,17 +196,16 @@ public class TeleOp extends OpMode {
                 collecting = true;                                                                  // After the button is released, resume collection mode
             }
         } else {                                                                                    // Storage Mode
-            if((gamepad1.dpad_down || gamepad2.dpad_down) && armAngle < -48.0) {                    // To deliver the minerals after the arm achieves a certain angle
-                storing = false;
-                robot.pivot.setPosition(0.55);
-                isPressed3 = true;
-            } else {
-                storing = true;
-            }
-
-            if(armAngle < 35 && storing) {                                                          // To bring the pivot up
+            if(armAngle < 35.0 && armAngle > -48.0) {                                               // In the range of the arm
                 robot.pivot.setPosition
-                        (Range.clip((-4.0*armAngle / 900.0) + 0.6, .15, 0.9));
+                        (Range.clip((-0.005625 * armAngle) + 0.65, .15, 0.85));  // Keep the servo up to prevent minerals from falling out
+            } else if (armAngle <= -48.0) {                                                         // Ready to score
+                if (robot.extend.getCurrentPosition() < -450 && !(gamepad1.dpad_down || gamepad2.dpad_down)) {             // Extending keeps servo at set position
+                    robot.pivot.setPosition(.85);
+                } else if ((gamepad1.dpad_down || gamepad2.dpad_down)) {                            // When the drivers choose to score at any point
+                    robot.pivot.setPosition(0.5);
+                    isPressed3 = true;
+                }
             }
         } // Collection and storage mode control
 
@@ -214,20 +213,17 @@ public class TeleOp extends OpMode {
          * SERVO CONTROL Block
          */
 
-
-
-
         if(gamepad1.right_bumper) {
             //robot.extend.setPower(1.0);
             extendPower = 1.0;
-        } else if(gamepad1.left_bumper) {
+        } else if(gamepad1.left_bumper || gamepad2.b) {
             //robot.extend.setPower(-0.5);
             extendPower = -0.75;
         } else {
             extendPower = 0.0;
         }
 
-        if (robot.extend.getCurrentPosition() > -200 && extendPower < 0.0) {
+        if (robot.extend.getCurrentPosition() > -150.0 && extendPower < 0.0) {
             //robot.extend.setPower(0.0);
             extendPower = 0.0;
         }
@@ -245,20 +241,6 @@ public class TeleOp extends OpMode {
                 lifting = false;                                                                    // To cancel lifting if necessary
             }
 
-            /*if(Math.abs(extendAngle - extendTgt) > 100.0) {
-                if(extendAngle > extendTgt) {
-                    robot.extend.setPower
-                            (Range.clip((Math.abs(extendAngle - extendTgt)) / 260.0, 0.3, 1.0));
-                } else {
-                    robot.extend.setPower
-                            (Range.clip((-Math.abs(extendAngle - extendTgt)) / 260.0, -1.0, -0.3));
-                }
-            } else if (extendPower < -0.2) {
-                robot.extend.setPower(extendPower);
-            } else {
-                robot.extend.setPower(0.0);
-            }*/
-
             if(armAngle > armTarget) {
                 armPower = Range.clip((Math.abs(armTarget - armAngle)) / 60.0, 0.375, 1.0);
                 robot.arm.setPower(armPower);                                                       // Setting power for lifting
@@ -272,7 +254,11 @@ public class TeleOp extends OpMode {
             if(gamepad1.right_trigger > 0.2) {
                 robot.arm.setPower(gamepad1.right_trigger);
             } else if (gamepad1.left_trigger > 0.2 || gamepad2.left_trigger > 0.2) {
-                robot.arm.setPower(-Range.clip(gamepad1.left_trigger + gamepad2.left_trigger, 0, 1.0));
+                if(robot.potentiometer.getVoltage() < 0.825) {
+                    robot.arm.setPower(-Range.clip(gamepad1.left_trigger + gamepad2.left_trigger, 0, 0.1));
+                } else {
+                    robot.arm.setPower(-Range.clip(gamepad1.left_trigger + gamepad2.left_trigger, 0, 1.0));
+                }
             } else {
                 robot.arm.setPower(0.0);
             }
@@ -304,7 +290,7 @@ public class TeleOp extends OpMode {
 
 
 
-        if(gamepad2.b) {
+        if(gamepad2.y) {
             robot.hardStop.setPosition(1.0);
         } else {
             robot.hardStop.setPosition(0.6);

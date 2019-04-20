@@ -214,9 +214,11 @@ abstract public class Auton extends LinearOpMode {
 
     void unlatch() {
 
+
+        robot.pivot.setPosition(0.8);
+
         armToPos(robot.arm, 20);
         robot.hardStop.setPosition(1.0);
-        robot.pivot.setPosition(0.8);
 
         hangToPos(robot.hang, -16800); //34000 for 40 motor
 
@@ -230,6 +232,48 @@ abstract public class Auton extends LinearOpMode {
         setPower(0.0);
 
         sleep(250);
+    }
+
+    void scoreMarkerAndPark(int dist) {
+
+        robot.extend.setPower(1.0);
+        while(robot.extend.getCurrentPosition() > -1500) {
+            telemetry.addData("extend", robot.extend.getCurrentPosition());
+            telemetry.update();
+
+        }
+        robot.extend.setPower(0.0);
+
+        sleep(250);
+
+        robot.pivot.setPosition(0.4);
+        robot.collection.setPower(1.0);
+        sleep(750);
+
+        robot.pivot.setPosition(0.8);
+
+        robot.extend.setPower(-0.75);
+        while(robot.extend.getCurrentPosition() < -150) {
+            telemetry.addData("extend", robot.extend.getCurrentPosition());
+            telemetry.update();
+
+        }
+        robot.extend.setPower(0.0);
+        robot.collection.setPower(0.0);
+
+        sleep(100);
+
+        driveInches(dist);
+
+        robot.arm.setPower(-0.5);
+        while(robot.potentiometer.getVoltage() > 0.9) {
+            telemetry.addData("pot", robot.potentiometer.getVoltage());
+            telemetry.update();
+            if(robot.potentiometer.getVoltage() < 1.5) {
+                robot.pivot.setPosition(0.45);
+            }
+        }
+        robot.arm.setPower(0.0);
     }
 
     int getGoldPosition() {
@@ -322,6 +366,10 @@ abstract public class Auton extends LinearOpMode {
                             if (r.getTop() > CAMERA_THRESHOLD) {
                                 threshRecognitions.add(r);
                             }
+
+                            if(isStopRequested()) {
+                                stop();
+                            }
                         }
                         telemetry.update();
                         if (threshRecognitions.size() == 2) {
@@ -331,6 +379,9 @@ abstract public class Auton extends LinearOpMode {
 
                             for (int i = 0; i < 2; i++) {
                                 minerals[i] = (int) threshRecognitions.get(i).getLeft();
+                                if(isStopRequested()) {
+                                    stop();
+                                }
                             }
 
                             if (minerals[1] > minerals[0]) {
@@ -436,7 +487,7 @@ abstract public class Auton extends LinearOpMode {
             deltaTime = getRuntime() - initTime;
 
             if (Math.abs(current - target) < 30)
-                i += .0095 * Math.abs(current - target) * deltaTime;
+                i += .01 * Math.abs(current - target) * deltaTime;
 
             if (i > 0.3) {
                 i = 0.3;
@@ -505,45 +556,6 @@ abstract public class Auton extends LinearOpMode {
         setPower(0.0);
     }
 
-    void wallFollow(double distanceThreshold, int distance) {
-        double error, angleError;
-        double counts = ((-distance / (1.5 * 12.56))) * 1120;
-        double target = robot.rightDrive1.getCurrentPosition() + counts;
-        double rightPower, leftPower;
-        robot.updatePosition();
-
-        double initAngle = robot.pos.firstAngle;
-
-        while(Math.abs(robot.rightDrive1.getCurrentPosition() - target) > 50 && opModeIsActive()) {
-            robot.updatePosition();
-            error = robot.dist.getDistance(DistanceUnit.INCH) - distanceThreshold;
-            angleError = initAngle - robot.pos.firstAngle;
-
-            if(angleError > 25) {
-
-                turnIMU((float) angleError);
-
-            } else {
-                if (Math.abs(error) > 0.2) {
-                    rightPower = 0.3 - Range.clip(error / 4.0, -0.2, 0.2);
-                    leftPower = 0.3 + Range.clip(error / 4.0, -0.2, 0.2);
-                } else {
-                    rightPower = 0.4;
-                    leftPower = 0.4;
-                }
-
-                setPower(rightPower, leftPower);
-            }
-
-            telemetry.addData("range", String.format("%.01f in", robot.dist.getDistance(DistanceUnit.INCH)));
-            telemetry.addData("angle Error", String.format("%.01f deg", angleError));
-            telemetry.update();
-
-        }
-
-        setPower(0.0);
-
-    }
 
     String formatAngle(AngleUnit angleUnit, double angle) {
         return formatDegrees(AngleUnit.DEGREES.fromUnit(angleUnit, angle));

@@ -46,14 +46,13 @@ public class HardwareQualifierBot {
             arm, hang, extend;
 
     CRServo collection;
-    Servo pivot, marker, hardStop;
+    Servo pivot, hardStop;
 
     BNO055IMU imu;
     BNO055IMU.Parameters parameters;
     Orientation pos;
 
     AnalogInput potentiometer;
-    DistanceSensor dist;
 
     HardwareQualifierBot(HardwareMap hM, Telemetry tM) {
         hardwareMap = hM;
@@ -80,12 +79,9 @@ public class HardwareQualifierBot {
 
         collection = hardwareMap.get(CRServo.class, "c2");
         pivot = hardwareMap.get(Servo.class, "s2");
-        marker = hardwareMap.get(Servo.class, "mrk");
         hardStop = hardwareMap.get(Servo.class, "hs");
 
         collection.setPower(0.0);
-        pivot.setPosition(1.0);
-        marker.setPosition(0.4);
         hardStop.setPosition(0.3);
 
 
@@ -104,7 +100,6 @@ public class HardwareQualifierBot {
         // and named "imu".
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         potentiometer = hardwareMap.get(AnalogInput.class, "pot");
-        dist = hardwareMap.get(DistanceSensor.class, "ToF");
 
         //updatePosition();
     }

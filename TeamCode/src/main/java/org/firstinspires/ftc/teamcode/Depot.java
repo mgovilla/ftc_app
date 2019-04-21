@@ -29,8 +29,14 @@ public class Depot extends Auton {
 
         waitForStart();
 
+        int goldPos = 0;
 
-        int goldPos = getGoldPosition();
+        try {
+            goldPos = getGoldPosition();
+        } catch(Exception e) {
+
+        }
+
         // Lower down onto the field
         unlatch();
 
@@ -44,27 +50,6 @@ public class Depot extends Auton {
                 //Turn to the left
                 telemetry.addData("GO LEFT", goldPos);
                 telemetry.update();
-                /*driveInches(9);
-                turnIMU(13);
-                driveInches(40);
-                sleep(100);
-                driveInches(-4);
-                turnIMU(-78);
-
-                driveInches(22);
-                sleep(250);
-                driveInches(-5);
-
-                //turnIMU((-robot.pos.firstAngle-45));
-                driveInches(-60, true);
-
-                robot.hang.setPower(1.0);
-                while(robot.hang.getCurrentPosition() < -250.0 && opModeIsActive()) {
-                    telemetry.addData("hang", robot.hang.getCurrentPosition());
-                }
-                robot.hang.setPower(0.0);
-
-                */
 
                 turnIMU(36, 50);
 
@@ -74,19 +59,27 @@ public class Depot extends Auton {
                 sleep(200);
 
                 // Drive back for space to turn without hitting silver mineral
-                driveInches(-10);
+                driveInches(-13);
                 sleep(200);
 
                 robot.updatePosition();
-                turnIMU(83-robot.pos.firstAngle);
+                turnIMU(175 - robot.pos.firstAngle, true, 0.02);
 
-                driveInches(35);
+                while(robot.hang.getCurrentPosition() < -250.0 && opModeIsActive()) {
+                    telemetry.addData("hang", robot.hang.getCurrentPosition());
+                }
+                robot.hang.setPower(0.0);
+                scoreMarker();
+
                 robot.updatePosition();
-                turnIMU(40-robot.pos.firstAngle);
+                turnIMU(87 - robot.pos.firstAngle);
 
-                driveInches(-10.0);
-                scoreMarkerAndPark(25);
+                driveInches(46);
 
+                turnIMU(130 - robot.pos.firstAngle, true, 0.02);
+
+                driveInches(5);
+                ArmPark();
                 break;
 
             case 1: //DONE
@@ -95,56 +88,85 @@ public class Depot extends Auton {
                 telemetry.addData("GO CENTER", goldPos);
                 telemetry.update();
                 //turnIMU(-5);
+                turnIMU(20, 50);
+                sleep(200);
+
                 driveInches(4);
                 sleep(200);
 
-                turnIMU(-robot.pos.firstAngle);
-
-                driveInches(55);
-
-                driveInches(-2);
-
                 robot.updatePosition();
-                turnIMU((-robot.pos.firstAngle-45));
-                driveInches(-57,  true);
+                turnIMU(-robot.pos.firstAngle, 50);
 
                 robot.hang.setPower(1.0);
+                // Go forward until the mineral is pushed off
+                driveInches(25);
+                sleep(200);
+
+                // Drive back for space to turn without hitting silver mineral
+                driveInches(-8);
+                sleep(200);
+
+                robot.updatePosition();
+                turnIMU(175 - robot.pos.firstAngle, true, 0.02);
+
                 while(robot.hang.getCurrentPosition() < -250.0 && opModeIsActive()) {
                     telemetry.addData("hang", robot.hang.getCurrentPosition());
                 }
                 robot.hang.setPower(0.0);
+                scoreMarker();
+
+                robot.updatePosition();
+                turnIMU(87 - robot.pos.firstAngle);
+
+                driveInches(50);
+
+                turnIMU(130 - robot.pos.firstAngle, true, 0.02);
+
+                driveInches(5);
+                ArmPark();
 
                 break;
 
-            case 2: //DONE
+            case 2:
                 //Turn to the Right
                 telemetry.addData("GO RIGHT", goldPos);
                 telemetry.update();
 
+                turnIMU(20, 25.0);
                 driveInches(6);
-                robot.updatePosition();
-                turnIMU(-65);
-                sleep(100);
 
-                driveInches(45);
-                sleep(100);
-                driveInches(-8);
-
-                turnIMU(90);
-
-                driveInches(40);
-
-                //driveInches(-5);
-
-                turnIMU(-87);
-                //driveInches(-24);
-
-                driveInches(-55, true);
                 robot.hang.setPower(1.0);
+                robot.updatePosition();
+                turnIMU(-67);
+                sleep(100);
+
+                // Go forward until the mineral is pushed off
+                driveInches(28);
+                sleep(200);
+
+                // Drive back for space to turn without hitting silver mineral
+                driveInches(-15);
+                sleep(200);
+
+                robot.updatePosition();
+                turnIMU(-180 - robot.pos.firstAngle, true, 0.03);
+
                 while(robot.hang.getCurrentPosition() < -250.0 && opModeIsActive()) {
                     telemetry.addData("hang", robot.hang.getCurrentPosition());
                 }
                 robot.hang.setPower(0.0);
+
+                scoreMarker();
+
+                robot.updatePosition();
+                turnIMU(84 - robot.pos.firstAngle);
+
+                driveInches(52);
+
+                turnIMU(130 - robot.pos.firstAngle, true, 0.02);
+
+                driveInches(5);
+                ArmPark();
 
                 break;
         }

@@ -55,10 +55,10 @@ public class TeleOp extends OpMode {
                     scoring     = false,
                     collecting  = false,             // false = delivery, true = collection
                     lifting     = false,
-                    extending  = false,
+                    extending   = false,
                     spitting    = false,
                     hanging     = false,
-                    CMode       = false;
+                    CMode       = true;
 
     private int     trigger     = 1,
                     trigger2    = 1,
@@ -71,7 +71,7 @@ public class TeleOp extends OpMode {
                     CltRev      = -1.0,
                     extendPower = 0.0,
                     armPower = 0.0,
-                    offset = 0.0;
+                    offset = -57.5;
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -306,6 +306,7 @@ public class TeleOp extends OpMode {
         telemetry.addData("Potentiometer Voltage", robot.potentiometer.getVoltage());
         telemetry.addData("Extend Position", robot.extend.getCurrentPosition());
 
+        telemetry.addData("offset", offset);
         telemetry.addData("Servo position", robot.pivot.getPosition());
 
     }

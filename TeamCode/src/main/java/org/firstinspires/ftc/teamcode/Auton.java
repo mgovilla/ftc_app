@@ -27,7 +27,7 @@ abstract public class Auton extends LinearOpMode {
     private static double CIRCUMFERENCE = 4.0 * Math.PI;
     private static double TICKS_PER_REV = 1120;
 
-    private static double CAMERA_THRESHOLD = 220.0; // Line where the minerals are considered sampling or in the crater for autonomous
+    private static double CAMERA_THRESHOLD = 350.0; // Line where the minerals are considered sampling or in the crater for autonomous
 
     private int goldMineralPosition = 3; //default to the right
 
@@ -234,10 +234,9 @@ abstract public class Auton extends LinearOpMode {
         sleep(250);
     }
 
-    void scoreMarkerAndPark(int dist) {
-
+    void scoreMarker() {
         robot.extend.setPower(1.0);
-        while(robot.extend.getCurrentPosition() > -1500) {
+        while(robot.extend.getCurrentPosition() > -1500 && opModeIsActive()) {
             telemetry.addData("extend", robot.extend.getCurrentPosition());
             telemetry.update();
 
@@ -253,7 +252,49 @@ abstract public class Auton extends LinearOpMode {
         robot.pivot.setPosition(0.8);
 
         robot.extend.setPower(-0.75);
-        while(robot.extend.getCurrentPosition() < -150) {
+        while(robot.extend.getCurrentPosition() < -150 && opModeIsActive()) {
+            telemetry.addData("extend", robot.extend.getCurrentPosition());
+            telemetry.update();
+
+        }
+        robot.extend.setPower(0.0);
+        robot.collection.setPower(0.0);
+
+        sleep(100);
+    }
+
+    void ArmPark() {
+        robot.arm.setPower(-0.5);
+        while(robot.potentiometer.getVoltage() > 0.9 && opModeIsActive()) {
+            telemetry.addData("pot", robot.potentiometer.getVoltage());
+            telemetry.update();
+            if(robot.potentiometer.getVoltage() < 1.5) {
+                robot.pivot.setPosition(0.45);
+            }
+        }
+        robot.arm.setPower(0.0);
+    }
+
+    void scoreMarkerAndPark(int dist) {
+
+        robot.extend.setPower(1.0);
+        while(robot.extend.getCurrentPosition() > -1500 && opModeIsActive()) {
+            telemetry.addData("extend", robot.extend.getCurrentPosition());
+            telemetry.update();
+
+        }
+        robot.extend.setPower(0.0);
+
+        sleep(250);
+
+        robot.pivot.setPosition(0.4);
+        robot.collection.setPower(1.0);
+        sleep(750);
+
+        robot.pivot.setPosition(0.8);
+
+        robot.extend.setPower(-0.75);
+        while(robot.extend.getCurrentPosition() < -150 && opModeIsActive()) {
             telemetry.addData("extend", robot.extend.getCurrentPosition());
             telemetry.update();
 
@@ -266,7 +307,7 @@ abstract public class Auton extends LinearOpMode {
         driveInches(dist);
 
         robot.arm.setPower(-0.5);
-        while(robot.potentiometer.getVoltage() > 0.9) {
+        while(robot.potentiometer.getVoltage() > 0.9 && opModeIsActive()) {
             telemetry.addData("pot", robot.potentiometer.getVoltage());
             telemetry.update();
             if(robot.potentiometer.getVoltage() < 1.5) {
@@ -367,7 +408,8 @@ abstract public class Auton extends LinearOpMode {
                                 threshRecognitions.add(r);
                             }
 
-                            if(isStopRequested()) {
+                            if(!opModeIsActive()) {
+                                tfod.shutdown();
                                 stop();
                             }
                         }
@@ -379,7 +421,8 @@ abstract public class Auton extends LinearOpMode {
 
                             for (int i = 0; i < 2; i++) {
                                 minerals[i] = (int) threshRecognitions.get(i).getLeft();
-                                if(isStopRequested()) {
+                                if(!opModeIsActive()) {
+                                    tfod.shutdown();
                                     stop();
                                 }
                             }
@@ -475,7 +518,7 @@ abstract public class Auton extends LinearOpMode {
             current = robot.pos.firstAngle; //getHeading
 
 
-            double power = Range.clip((Math.abs((current - target) / (100.0)) + i), .275, .7);
+            double power = Range.clip((Math.abs((current - target) / (100.0)) + i), .3, .7);
 
 
             if (current < target) { //Must turn left
@@ -537,7 +580,7 @@ abstract public class Auton extends LinearOpMode {
             deltaTime = getRuntime() - initTime;
 
             if (Math.abs(current - target) < 30)
-                i += .0095 * Math.abs(current - target) * deltaTime;
+                i += .01 * Math.abs(current - target) * deltaTime;
 
             if (i > 0.3) {
                 i = 0.3;
@@ -556,6 +599,55 @@ abstract public class Auton extends LinearOpMode {
         setPower(0.0);
     }
 
+    void turnIMU(float target, boolean longRange, double iCon) {
+        robot.updatePosition();
+
+        double startTime = getRuntime();
+        float initial = robot.pos.firstAngle;
+        float current = initial;
+        target = target + initial;
+
+        double deltaAngle = 0, initTime, deltaTime;
+        double i = 0;
+
+        while (Math.abs((current) - (target)) > 1.0 && getRuntime() - startTime < 4 && opModeIsActive()) {
+            initTime = getRuntime();
+
+            robot.updatePosition();
+            current = robot.pos.firstAngle; //getHeading
+
+
+            double power = Range.clip((Math.abs((current - target) / (100.0)) + i), .275, .7);
+
+
+            if (current < target) { //Must turn left
+                setPower(power, -power);
+            } else if (current > target) { //Must turn right
+                setPower(-power, power);
+            }
+
+            deltaTime = getRuntime() - initTime;
+
+            if (Math.abs(current - target) < 30)
+                i += iCon * Math.abs(current - target) * deltaTime;
+
+            if (i > 0.3) {
+                i = 0.3;
+            }
+
+
+            if(robot.hang.getCurrentPosition() > -250) {
+                robot.hang.setPower(0.0);
+            }
+
+            telemetry.addData("toGo", String.format("%.01f deg", current - target));
+            telemetry.addData("power", power);
+            telemetry.addData("i", i);
+
+            telemetry.update();
+        }
+        setPower(0.0);
+    }
 
     String formatAngle(AngleUnit angleUnit, double angle) {
         return formatDegrees(AngleUnit.DEGREES.fromUnit(angleUnit, angle));

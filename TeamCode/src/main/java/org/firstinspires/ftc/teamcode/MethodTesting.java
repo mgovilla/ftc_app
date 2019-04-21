@@ -51,7 +51,7 @@ import java.util.Locale;
  *
  * @see <a href="http://www.adafruit.com/products/2472">Adafruit IMU</a>
  */
-@Autonomous(name = "Score Marker")
+@Autonomous(name = "goldPos")
 
 public class MethodTesting extends Auton {
 
